@@ -46,6 +46,8 @@ public:
         open = false;
     }
 
+    bool isOpen() const { return open; }
+
     /** Recebe o nível absoluto (linear) da amostra e devolve o ganho a aplicar. */
     float processSample (float level)
     {

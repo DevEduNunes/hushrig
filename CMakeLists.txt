@@ -36,12 +36,17 @@ target_sources(HushRig PRIVATE
     src/PluginProcessor.h
     src/PluginEditor.cpp
     src/PluginEditor.h
+    src/DeviceInfo.cpp
+    src/DeviceInfo.h
+    src/ui/HushLookAndFeel.h
+    src/ui/LevelMeter.h
     src/update/Updater.cpp
     src/update/Updater.h
     src/update/Sha256.h
     src/update/VersionCompare.h)
 
-target_include_directories(HushRig PRIVATE src)
+# A raiz dos módulos dá acesso a juce_audio_plugin_client (StandalonePluginHolder, usado em DeviceInfo.cpp)
+target_include_directories(HushRig PRIVATE src ${juce_SOURCE_DIR}/modules)
 
 # Fontes em UTF-8 (textos em português com acento)
 target_compile_options(HushRig PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
@@ -68,6 +73,7 @@ target_sources(HushRigShots PRIVATE
     tools/Screenshots.cpp
     src/PluginProcessor.cpp
     src/PluginEditor.cpp
+    src/DeviceInfo.cpp
     src/update/Updater.cpp)
 
 target_include_directories(HushRigShots PRIVATE src)
@@ -75,6 +81,7 @@ target_compile_options(HushRigShots PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
 target_compile_definitions(HushRigShots PRIVATE
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
+    HUSHRIG_NO_STANDALONE_HOLDER=1
     JucePlugin_VersionString="${PROJECT_VERSION}")
 
 target_link_libraries(HushRigShots

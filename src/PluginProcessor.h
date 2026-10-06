@@ -37,6 +37,14 @@ public:
     juce::AudioProcessorValueTreeState apvts;
     Updater updater; // vive com o processador; o editor só liga/desliga os callbacks
 
+    // Telemetria para a interface (escrita na thread de áudio, lida pela UI).
+    // Os picos guardam o maior valor desde a última leitura (a UI faz exchange(0)).
+    std::atomic<float> inputPeak { 0.0f };
+    std::atomic<float> outputPeak { 0.0f };
+    std::atomic<bool> gateOpen { false };
+    std::atomic<double> sampleRateHz { 0.0 };
+    std::atomic<int> blockSize { 0 };
+
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
 

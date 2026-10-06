@@ -6,6 +6,25 @@ namespace
 {
 using Range = juce::NormalisableRange<float>;
 using Attrs = juce::AudioParameterFloatAttributes;
+
+void raisePeak (std::atomic<float>& target, float value)
+{
+    auto current = target.load (std::memory_order_relaxed);
+
+    while (value > current && ! target.compare_exchange_weak (current, value, std::memory_order_relaxed))
+    {
+    }
+}
+
+float maxMagnitude (const juce::AudioBuffer<float>& buffer)
+{
+    float peak = 0.0f;
+
+    for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
+        peak = std::max (peak, buffer.getMagnitude (ch, 0, buffer.getNumSamples()));
+
+    return peak;
+}
 } // namespace
 
 HushRigProcessor::HushRigProcessor()
@@ -52,8 +71,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout HushRigProcessor::createLayo
     return layout;
 }
 
-void HushRigProcessor::prepareToPlay (double sampleRate, int)
+void HushRigProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
+    sampleRateHz.store (sampleRate);
+    blockSize.store (samplesPerBlock);
     gate.prepare (sampleRate);
     lastInputGain  = juce::Decibels::decibelsToGain (inputGainDb->load());
     lastOutputGain = juce::Decibels::decibelsToGain (outputGainDb->load());
@@ -86,7 +107,11 @@ void HushRigProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     buffer.applyGainRamp (0, numSamples, lastInputGain, inGain);
     lastInputGain = inGain;
 
-    if (gateBypass->load() < 0.5f)
+    raisePeak (inputPeak, maxMagnitude (buffer));
+
+    const bool gateActive = gateBypass->load() < 0.5f;
+
+    if (gateActive)
     {
         hushrig::NoiseGate::Params p;
         p.thresholdDb = gateThresholdDb->load();
@@ -99,6 +124,9 @@ void HushRigProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     const float outGain = juce::Decibels::decibelsToGain (outputGainDb->load());
     buffer.applyGainRamp (0, numSamples, lastOutputGain, outGain);
     lastOutputGain = outGain;
+
+    raisePeak (outputPeak, maxMagnitude (buffer));
+    gateOpen.store (gateActive ? gate.isOpen() : true, std::memory_order_relaxed);
 }
 
 juce::AudioProcessorEditor* HushRigProcessor::createEditor()

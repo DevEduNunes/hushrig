@@ -5,6 +5,7 @@
 
 #include <cstdio>
 
+#include "DeviceInfo.h"
 #include "PluginEditor.h"
 #include "PluginProcessor.h"
 
@@ -45,7 +46,24 @@ int main (int argc, char* argv[])
     setParam (processor, "gateRelease", 120.0f);
     setParam (processor, "outputGain", -2.0f);
 
+    // Valores de exemplo para a tela: um dispositivo ASIO típico e um sinal tocando.
+    DeviceStats sample;
+    sample.fromDevice = true;
+    sample.deviceName = "FlexASIO";
+    sample.apiName = "ASIO";
+    sample.sampleRate = 48000.0;
+    sample.bufferSamples = 128;
+    sample.inputLatencySamples = 224;
+    sample.outputLatencySamples = 224;
+    sample.cpuUsage = 0.06;
+    deviceStatsOverride() = sample;
+
+    processor.inputPeak.store (0.22f);   // ~ -13 dB
+    processor.outputPeak.store (0.16f);  // ~ -16 dB
+    processor.gateOpen.store (true);
+
     HushRigEditor editor (processor);
+    editor.tick (true);
 
     savePng (editor.createComponentSnapshot (editor.getLocalBounds(), true, 2.0f), outDir.getChildFile ("app-main.png"));
 
@@ -56,6 +74,10 @@ int main (int argc, char* argv[])
     if (processor.updater.onCheckDone)
         processor.updater.onCheckDone (Updater::CheckResult::updateAvailable, info,
                                        juce::String::fromUTF8 ("Nova versão disponível: 0.2.0"));
+
+    processor.inputPeak.store (0.22f);
+    processor.outputPeak.store (0.16f);
+    editor.tick (true);
 
     savePng (editor.createComponentSnapshot (editor.getLocalBounds(), true, 2.0f), outDir.getChildFile ("app-update.png"));
 
