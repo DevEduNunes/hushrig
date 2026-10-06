@@ -38,6 +38,7 @@ target_sources(HushRig PRIVATE
     src/PluginEditor.h
     src/update/Updater.cpp
     src/update/Updater.h
+    src/update/Sha256.h
     src/update/VersionCompare.h)
 
 target_include_directories(HushRig PRIVATE src)
@@ -65,7 +66,7 @@ enable_testing()
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(Catch)
 
-add_executable(hushrig_tests tests/NoiseGateTests.cpp tests/VersionCompareTests.cpp)
+add_executable(hushrig_tests tests/NoiseGateTests.cpp tests/VersionCompareTests.cpp tests/Sha256Tests.cpp)
 target_compile_options(hushrig_tests PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
 target_include_directories(hushrig_tests PRIVATE src)
 target_link_libraries(hushrig_tests PRIVATE Catch2::Catch2WithMain)

@@ -1,5 +1,6 @@
 #include "update/Updater.h"
 
+#include "update/Sha256.h"
 #include "update/VersionCompare.h"
 
 namespace
@@ -176,10 +177,29 @@ void Updater::runInstall()
         return postInstallerLaunched (false, pt ("Download incompleto. Tente novamente."));
     }
 
-    if (target.sha256.isNotEmpty() && juce::SHA256 (destFile).toHexString() != target.sha256)
+    if (target.sha256.isNotEmpty())
     {
-        destFile.deleteFile();
-        return postInstallerLaunched (false, pt ("Falha na verificação de integridade do instalador."));
+        hushrig::Sha256 hasher;
+        juce::FileInputStream in (destFile);
+
+        if (in.failedToOpen())
+            return postInstallerLaunched (false, pt ("Não foi possível ler o instalador baixado."));
+
+        juce::HeapBlock<char> chunk (64 * 1024);
+
+        while (! in.isExhausted())
+        {
+            const int n = in.read (chunk, 64 * 1024);
+            if (n <= 0)
+                break;
+            hasher.update (chunk, static_cast<size_t> (n));
+        }
+
+        if (juce::String (hasher.finishHex()) != target.sha256)
+        {
+            destFile.deleteFile();
+            return postInstallerLaunched (false, pt ("Falha na verificação de integridade do instalador."));
+        }
     }
 
     // /SILENT mostra só o progresso; /CLOSEAPPLICATIONS fecha este app; o instalador reabre depois.
