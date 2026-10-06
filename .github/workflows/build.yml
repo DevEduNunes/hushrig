@@ -31,6 +31,27 @@ jobs:
       - name: Test (DSP)
         run: ctest --test-dir build -C Release --output-on-failure
 
+      - name: Generate screenshots
+        shell: pwsh
+        run: |
+          & "build/HushRigShots_artefacts/Release/HushRigShots.exe" "$env:GITHUB_WORKSPACE\docs\images"
+          if ($LASTEXITCODE -ne 0) { throw "HushRigShots falhou ($LASTEXITCODE)" }
+          Get-ChildItem docs/images
+
+      - name: Commit screenshots
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/images
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "docs: atualiza screenshots do app [skip ci]"
+            git pull --rebase origin main
+            git push origin main
+          }
+
       - name: Upload Standalone
         uses: actions/upload-artifact@v4
         with:

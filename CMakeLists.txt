@@ -61,6 +61,28 @@ target_link_libraries(HushRig
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags)
 
+# --- Ferramenta de screenshots (usada pelo CI para o README) ---------------
+juce_add_console_app(HushRigShots PRODUCT_NAME "HushRigShots")
+
+target_sources(HushRigShots PRIVATE
+    tools/Screenshots.cpp
+    src/PluginProcessor.cpp
+    src/PluginEditor.cpp
+    src/update/Updater.cpp)
+
+target_include_directories(HushRigShots PRIVATE src)
+target_compile_options(HushRigShots PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
+target_compile_definitions(HushRigShots PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JucePlugin_VersionString="${PROJECT_VERSION}")
+
+target_link_libraries(HushRigShots
+    PRIVATE
+        juce::juce_audio_utils
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags)
+
 # --- Testes do DSP (sem dependência do JUCE) -------------------------------
 enable_testing()
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
