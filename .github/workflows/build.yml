@@ -34,3 +34,29 @@ jobs:
           name: HushRig-VST3-Windows
           path: build/HushRig_artefacts/Release/VST3/
           if-no-files-found: warn
+
+      - name: Download latest FlexASIO
+        shell: pwsh
+        run: |
+          $rel = Invoke-RestMethod 'https://api.github.com/repos/dechamps/FlexASIO/releases/latest' -Headers @{ 'User-Agent' = 'hushrig-ci' }
+          $asset = $rel.assets | Where-Object { $_.name -match '^FlexASIO-.*\.exe$' } | Select-Object -First 1
+          if (-not $asset) { throw 'Instalador do FlexASIO nao encontrado na ultima release' }
+          New-Item -ItemType Directory -Force installer/deps | Out-Null
+          Invoke-WebRequest $asset.browser_download_url -OutFile installer/deps/FlexASIO-setup.exe
+          Write-Host "FlexASIO embutido: $($asset.name) ($($rel.tag_name))"
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          if ($env:GITHUB_REF -like 'refs/tags/v*') { $v = $env:GITHUB_REF_NAME.TrimStart('v') } else { $v = '0.1.0' }
+          $ws = $env:GITHUB_WORKSPACE
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DMyAppVersion=$v" "/DBuildDir=$ws\build\HushRig_artefacts\Release" "/DFlexAsioInstaller=$ws\installer\deps\FlexASIO-setup.exe" installer\HushRig.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC falhou ($LASTEXITCODE)" }
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: HushRig-Installer-Windows
+          path: dist/*.exe
+          if-no-files-found: error

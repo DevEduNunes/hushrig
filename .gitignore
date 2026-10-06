@@ -5,3 +5,5 @@ out/
 *.user
 CMakeUserPresets.json
 *.wav
+installer/deps/
+dist/
