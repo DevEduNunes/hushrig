@@ -59,3 +59,5 @@ Name: "{autodesktop}\HushRig"; Filename: "{app}\HushRig.exe"; Tasks: desktopicon
 [Run]
 Filename: "{tmp}\FlexASIO-setup.exe"; Parameters: "/S"; StatusMsg: "Instalando o FlexASIO..."; Components: flexasio; Flags: waituntilterminated
 Filename: "{app}\HushRig.exe"; Description: "Abrir o HushRig"; Flags: nowait postinstall skipifsilent
+; Atualização automática pelo app (instalação silenciosa): reabre o HushRig ao terminar
+Filename: "{app}\HushRig.exe"; Flags: nowait; Check: WizardSilent

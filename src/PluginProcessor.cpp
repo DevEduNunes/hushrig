@@ -1,5 +1,7 @@
 #include "PluginProcessor.h"
 
+#include "PluginEditor.h"
+
 namespace
 {
 using Range = juce::NormalisableRange<float>;
@@ -101,7 +103,7 @@ void HushRigProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
 
 juce::AudioProcessorEditor* HushRigProcessor::createEditor()
 {
-    return new juce::GenericAudioProcessorEditor (*this);
+    return new HushRigEditor (*this);
 }
 
 void HushRigProcessor::getStateInformation (juce::MemoryBlock& destData)

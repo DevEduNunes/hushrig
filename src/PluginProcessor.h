@@ -3,6 +3,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
 #include "dsp/NoiseGate.h"
+#include "update/Updater.h"
 
 class HushRigProcessor final : public juce::AudioProcessor
 {
@@ -34,6 +35,7 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState apvts;
+    Updater updater; // vive com o processador; o editor só liga/desliga os callbacks
 
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();

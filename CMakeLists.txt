@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
-project(HushRig VERSION 0.1.0 LANGUAGES C CXX)
+# A versão pode ser sobrescrita pelo CI: cmake -DHUSHRIG_VERSION=0.2.0
+set(HUSHRIG_VERSION "0.1.0" CACHE STRING "Versão do HushRig (major.minor.patch)")
+project(HushRig VERSION ${HUSHRIG_VERSION} LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -31,9 +33,17 @@ juce_add_plugin(HushRig
 
 target_sources(HushRig PRIVATE
     src/PluginProcessor.cpp
-    src/PluginProcessor.h)
+    src/PluginProcessor.h
+    src/PluginEditor.cpp
+    src/PluginEditor.h
+    src/update/Updater.cpp
+    src/update/Updater.h
+    src/update/VersionCompare.h)
 
 target_include_directories(HushRig PRIVATE src)
+
+# Fontes em UTF-8 (textos em português com acento)
+target_compile_options(HushRig PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
 
 target_compile_definitions(HushRig PUBLIC
     JUCE_WEB_BROWSER=0
@@ -55,7 +65,8 @@ enable_testing()
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(Catch)
 
-add_executable(hushrig_tests tests/NoiseGateTests.cpp)
+add_executable(hushrig_tests tests/NoiseGateTests.cpp tests/VersionCompareTests.cpp)
+target_compile_options(hushrig_tests PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
 target_include_directories(hushrig_tests PRIVATE src)
 target_link_libraries(hushrig_tests PRIVATE Catch2::Catch2WithMain)
 catch_discover_tests(hushrig_tests)
