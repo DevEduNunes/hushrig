@@ -41,7 +41,7 @@ hushrig::NoiseGate makeGate()
 }
 } // namespace
 
-TEST_CASE ("Ruído abaixo do threshold é atenuado")
+TEST_CASE ("Ruido abaixo do threshold e atenuado")
 {
     auto gate = makeGate();
     const float amplitude = 0.0005f; // ~ -66 dBFS
@@ -49,7 +49,7 @@ TEST_CASE ("Ruído abaixo do threshold é atenuado")
     REQUIRE (peak < amplitude * 0.02f);
 }
 
-TEST_CASE ("Sinal acima do threshold passa praticamente intacto")
+TEST_CASE ("Sinal acima do threshold passa intacto")
 {
     auto gate = makeGate();
     const float amplitude = 0.5f;
