@@ -100,6 +100,10 @@ void HushRigEditor::addKnob (Knob& knob, const juce::String& caption, const char
     knob.slider.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
     knob.slider.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 84, 20);
     knob.slider.setTextValueSuffix (suffix);
+    // Definido por slider para garantir que a caixa de valor siga o tema.
+    knob.slider.setColour (juce::Slider::textBoxTextColourId, hush::colours::text);
+    knob.slider.setColour (juce::Slider::textBoxBackgroundColourId, track);
+    knob.slider.setColour (juce::Slider::textBoxOutlineColourId, border);
     addAndMakeVisible (knob.slider);
 
     knob.attachment = std::make_unique<SliderAttachment> (processor.apvts, paramId, knob.slider);

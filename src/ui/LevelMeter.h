@@ -34,7 +34,9 @@ public:
         using namespace hush::colours;
 
         auto area = getLocalBounds().toFloat();
-        const auto bar = area.removeFromTop (14.0f);
+        auto barArea = area.removeFromTop (14.0f);
+        barArea.removeFromRight (14.0f); // folga para o rótulo "0" não ser cortado
+        const auto bar = barArea;
 
         const auto xFor = [&bar] (float db)
         {

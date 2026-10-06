@@ -11,7 +11,7 @@ inline const juce::Colour track        { 0xff1c1230 };
 inline const juce::Colour text         { 0xffc084fc };
 inline const juce::Colour textDim      { 0xff8b5fbf };
 inline const juce::Colour accent       { 0xffa855f7 };
-inline const juce::Colour accentBright { 0xffe9d5ff };
+inline const juce::Colour accentBright { 0xffd8b4fe };
 inline const juce::Colour good         { 0xff4ade80 };
 inline const juce::Colour okay         { 0xffbef264 };
 inline const juce::Colour warn         { 0xfffacc15 };
@@ -32,6 +32,7 @@ public:
         setColour (juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
         setColour (juce::Slider::textBoxBackgroundColourId, juce::Colours::transparentBlack);
         setColour (juce::Slider::textBoxHighlightColourId, accent.withAlpha (0.4f));
+        setColour (juce::ComboBox::outlineColourId, border.brighter (0.3f));
         setColour (juce::TextButton::buttonColourId, track);
         setColour (juce::TextButton::buttonOnColourId, accent);
         setColour (juce::TextButton::textColourOffId, accentBright);
