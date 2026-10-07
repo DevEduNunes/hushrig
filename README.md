@@ -21,7 +21,7 @@ Toque direto no PC com baixa latência e sem chiado.
 Guitarra ligada direto no PC costuma dar dois problemas: **chiado** (captadores single coil, ganho alto, ruído da USB) e **delay** (drivers de áudio padrão do Windows com buffers grandes).
 O HushRig ataca os dois: um **noise gate de latência zero** feito para guitarra e um caminho de áudio pensado para rodar com **ASIO**.
 
-> ⚠️ Projeto em fase inicial (v0.1). Hoje ele tem o gate e os ganhos. Os pedais estão no [roadmap](#-roadmap).
+> ⚠️ Projeto em fase inicial. Hoje ele tem gate, ganhos, pedais e presets. O amp sim está no [roadmap](#-roadmap).
 
 ## ✨ Recursos
 
