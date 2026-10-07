@@ -29,7 +29,10 @@ FetchContent_MakeAvailable(JUCE Catch2 NAMCore)
 file(GLOB NAM_CORE_SOURCES CONFIGURE_DEPENDS
     "${namcore_SOURCE_DIR}/NAM/*.cpp"
     "${namcore_SOURCE_DIR}/NAM/*/*.cpp")
-add_library(nam_core STATIC ${NAM_CORE_SOURCES})
+# OBJECT (nao STATIC): o NAM registra WaveNet/LSTM/etc. por inicializadores estaticos, e o linker
+# descartaria esses objetos de uma biblioteca estatica ("No config parser registered for architecture").
+add_library(nam_core OBJECT ${NAM_CORE_SOURCES})
+set_target_properties(nam_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(nam_core PUBLIC "${namcore_SOURCE_DIR}")
 target_include_directories(nam_core SYSTEM PUBLIC
     "${namcore_SOURCE_DIR}/Dependencies/eigen"

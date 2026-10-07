@@ -6,12 +6,35 @@
 #include <filesystem>
 #include <string>
 
+#include <cstdint>
+
 #include "NAM/activations.h"
+#include "NAM/container.h"
+#include "NAM/convnet.h"
 #include "NAM/dsp.h"
 #include "NAM/get_dsp.h"
+#include "NAM/linear.h"
+#include "NAM/lstm.h"
+#include "NAM/sequential.h"
+#include "NAM/wavenet/model.h"
 
 namespace hushrig
 {
+// O NAM registra cada arquitetura (WaveNet, LSTM...) com um objeto estatico dentro do proprio .cpp.
+// Se esses .cpp vierem de uma biblioteca estatica (o JUCE empacota o codigo do plugin assim), o linker
+// os descarta por nao serem referenciados e o carregamento falha com "No config parser registered".
+// Esta tabela, com ligacao externa e volatile (nao pode ser removida), referencia uma funcao de
+// cada arquivo e obriga o linker a mante-los.
+extern volatile const std::uintptr_t namArchitectureAnchors[];
+volatile const std::uintptr_t namArchitectureAnchors[] = {
+    reinterpret_cast<std::uintptr_t> (&nam::wavenet::create_config),
+    reinterpret_cast<std::uintptr_t> (&nam::lstm::create_config),
+    reinterpret_cast<std::uintptr_t> (&nam::convnet::create_config),
+    reinterpret_cast<std::uintptr_t> (&nam::linear::create_config),
+    reinterpret_cast<std::uintptr_t> (&nam::sequential::create_config),
+    reinterpret_cast<std::uintptr_t> (&nam::container::create_config),
+};
+
 struct NamAmp::Impl
 {
     std::unique_ptr<nam::DSP> model;
