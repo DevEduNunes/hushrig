@@ -35,8 +35,11 @@ target_include_directories(nam_core SYSTEM PUBLIC
     "${namcore_SOURCE_DIR}/Dependencies/eigen"
     "${namcore_SOURCE_DIR}/Dependencies/nlohmann")
 target_compile_features(nam_core PUBLIC cxx_std_20)
-target_compile_definitions(nam_core PUBLIC NAM_ENABLE_A2_FAST
-    $<$<PLATFORM_ID:Windows>:NOMINMAX WIN32_LEAN_AND_MEAN>)
+target_compile_definitions(nam_core PUBLIC NAM_ENABLE_A2_FAST)
+# No Windows os headers do NAM precisam disto; fica fora do PUBLIC para nao colidir com as definicoes do JUCE.
+target_compile_definitions(nam_core PRIVATE $<$<PLATFORM_ID:Windows>:NOMINMAX WIN32_LEAN_AND_MEAN>)
+set_source_files_properties(src/amp/NamAmp.cpp PROPERTIES
+    COMPILE_DEFINITIONS "$<$<PLATFORM_ID:Windows>:NOMINMAX;WIN32_LEAN_AND_MEAN>")
 target_compile_options(nam_core PRIVATE $<IF:$<CXX_COMPILER_ID:MSVC>,/w,-w>)
 
 # --- Plugin (Standalone + VST3) -------------------------------------------
@@ -104,6 +107,7 @@ target_sources(HushRigShots PRIVATE
     src/PluginEditor.cpp
     src/DeviceInfo.cpp
     src/PresetManager.cpp
+    src/amp/NamAmp.cpp
     src/update/Updater.cpp)
 
 target_include_directories(HushRigShots PRIVATE src)
@@ -112,13 +116,20 @@ target_compile_definitions(HushRigShots PRIVATE
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     HUSHRIG_NO_STANDALONE_HOLDER=1
+    HUSHRIG_SAMPLE_MODEL="${CMAKE_CURRENT_SOURCE_DIR}/tests/data/wavenet.nam"
     JucePlugin_VersionString="${PROJECT_VERSION}")
 
 target_link_libraries(HushRigShots
     PRIVATE
         juce::juce_audio_utils
+        nam_core
         juce::juce_recommended_config_flags
         juce::juce_recommended_warning_flags)
+
+# --- Benchmark de modelos NAM (sem JUCE): hushrig_ampbench <modelo.nam> -------
+add_executable(hushrig_ampbench tools/AmpBench.cpp src/amp/NamAmp.cpp)
+target_include_directories(hushrig_ampbench PRIVATE src)
+target_link_libraries(hushrig_ampbench PRIVATE nam_core)
 
 # --- Testes do DSP (sem dependência do JUCE) -------------------------------
 enable_testing()

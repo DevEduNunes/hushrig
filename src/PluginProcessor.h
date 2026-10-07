@@ -10,6 +10,7 @@
 #include "dsp/Eq3.h"
 #include "dsp/NoiseGate.h"
 #include "dsp/Overdrive.h"
+#include "amp/NamAmp.h"
 #include "dsp/Reverb.h"
 #include "update/Updater.h"
 
@@ -17,7 +18,7 @@ class HushRigProcessor final : public juce::AudioProcessor
 {
 public:
     HushRigProcessor();
-    ~HushRigProcessor() override = default;
+    ~HushRigProcessor() override;
 
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
     void releaseResources() override {}
@@ -46,6 +47,15 @@ public:
     hushrig::ChainOrder getChainOrder() const;
     void setChainOrder (const hushrig::ChainOrder& order);
 
+    // Amp sim (NAM). `loadAmpModel` roda na thread da UI: carrega, prepara e publica o modelo
+    // para a thread de audio sem travar (troca atomica). Devolve false e preenche `error` se falhar.
+    bool loadAmpModel (const juce::File& file, juce::String& error);
+    juce::String getAmpModelPath() const { return apvts.state.getProperty ("ampModel").toString(); }
+
+    std::atomic<bool> ampLoaded { false };
+    std::atomic<bool> ampRateMismatch { false };
+    std::atomic<float> ampCpuLoad { 0.0f }; // tempo de processamento / tempo do buffer (0..1+), suavizado
+
     juce::AudioProcessorValueTreeState apvts;
     hushrig::Recorder recorder; // gravação em WAV (acionada pela interface)
     PresetManager presets { *this }; // presets de fabrica e do usuario
@@ -72,6 +82,17 @@ private:
     // Parametros dos pedais (ids em createLayout).
     void runPedal (hushrig::Pedal pedal, float* const* data, int numChannels, int numSamples);
     void loadChainOrderFromState();
+    void loadAmpFromState();
+    void adoptPendingAmp();
+    void collectRetiredAmp();
+    void processAmp (float* const* data, int numChannels, int numSamples);
+
+    // Troca sem lock: a UI publica em `pendingAmp`; a thread de audio adota no inicio do bloco
+    // e devolve o antigo em `retiredAmp`, que a UI destroi (nunca se libera memoria no audio).
+    std::unique_ptr<hushrig::NamAmp> activeAmp;
+    std::atomic<hushrig::NamAmp*> pendingAmp { nullptr };
+    std::atomic<hushrig::NamAmp*> retiredAmp { nullptr };
+    float lastAmpIn = 1.0f, lastAmpOut = 1.0f;
 
     std::array<std::atomic<int>, hushrig::kNumPedals> chainSlots;
 
@@ -82,6 +103,7 @@ private:
         std::atomic<float> *chOn, *chRate, *chDepth, *chMix;
         std::atomic<float> *dlOn, *dlTime, *dlFeedback, *dlMix, *dlTone;
         std::atomic<float> *rvOn, *rvRoom, *rvDamp, *rvMix;
+        std::atomic<float> *ampOn, *ampIn, *ampOut;
     } pedals {};
 
     std::atomic<float>* inputGainDb = nullptr;

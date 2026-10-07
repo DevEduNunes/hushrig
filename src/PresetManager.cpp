@@ -30,7 +30,7 @@ const std::vector<Factory>& factoryPresets()
 // Ganho/gate sao do "setup" do usuario, nao do preset: ficam como estao.
 bool isPedalParameter (const juce::String& id)
 {
-    return id.startsWith ("od") || id.startsWith ("eq") || id.startsWith ("ch") || id.startsWith ("dl") || id.startsWith ("rv");
+    return id.startsWith ("od") || id.startsWith ("amp") || id.startsWith ("eq") || id.startsWith ("ch") || id.startsWith ("dl") || id.startsWith ("rv");
 }
 } // namespace
 
@@ -108,6 +108,8 @@ bool PresetManager::saveUserPreset (const juce::String& name)
         if (! isPedalParameter (state.getChild (i).getProperty ("id").toString()))
             state.removeChild (i, nullptr);
 
+    state.setProperty ("ampModel", processor.getAmpModelPath(), nullptr);
+
     if (auto xml = state.createXml())
         return xml->writeTo (file);
     return false;
@@ -140,6 +142,13 @@ bool PresetManager::loadUserPreset (const juce::String& name)
             }
 
     processor.setChainOrder (hushrig::ChainOrder::fromString (saved.getProperty ("chainOrder").toString().toStdString()));
+
+    // O modelo do amp vai junto (caminho absoluto); se o arquivo sumiu, mantem o atual.
+    const juce::File model (saved.getProperty ("ampModel").toString());
+    juce::String ignored;
+    if (model.existsAsFile() && model.getFullPathName() != processor.getAmpModelPath())
+        processor.loadAmpModel (model, ignored);
+
     return true;
 }
 

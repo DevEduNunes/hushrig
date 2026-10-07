@@ -26,6 +26,7 @@ public:
             strips[i] = std::make_unique<Strip> (processor, specs()[i], static_cast<int> (i));
             strips[i]->onDrag = [this] (int id, float x) { dragMoved (id, x); };
             strips[i]->onDrop = [this] { dragEnded(); };
+            strips[i]->onLoadModel = [this] { chooseAmpModel(); };
             addAndMakeVisible (*strips[i]);
         }
 
@@ -101,7 +102,7 @@ private:
     static juce::String pt (const char* utf8) { return juce::String::fromUTF8 (utf8); }
 
     struct KnobSpec { const char* caption; const char* id; };
-    struct PedalSpec { const char* title; const char* onId; std::vector<KnobSpec> knobs; };
+    struct PedalSpec { const char* title; const char* onId; std::vector<KnobSpec> knobs; bool amp = false; };
 
     // Mesma ordem do enum hushrig::Pedal.
     static const std::array<PedalSpec, hushrig::kNumPedals>& specs()
@@ -112,6 +113,7 @@ private:
             { "CHORUS",    "chOn", { { "RATE", "chRate" }, { "DEPTH", "chDepth" }, { "MIX", "chMix" } } },
             { "DELAY",     "dlOn", { { "TIME", "dlTime" }, { "FDBK", "dlFeedback" }, { "MIX", "dlMix" }, { "TONE", "dlTone" } } },
             { "REVERB",    "rvOn", { { "ROOM", "rvRoom" }, { "DAMP", "rvDamp" }, { "MIX", "rvMix" } } },
+            { "AMP (NAM)", "ampOn", { { "INPUT", "ampIn" }, { "OUTPUT", "ampOut" } }, true },
         } };
         return s;
     }
@@ -121,11 +123,13 @@ private:
     public:
         std::function<void (int, float)> onDrag;
         std::function<void()> onDrop;
+        std::function<void()> onLoadModel; // so no bloco do amp
 
         Strip (HushRigProcessor& p, const PedalSpec& s, int pedalId)
             : processor (p), spec (s), id (pedalId), onParam (p.apvts.getRawParameterValue (s.onId))
         {
-            toggle.setButtonText ("ON");
+            toggle.setButtonText ({});
+            toggle.setTooltip ("Liga/desliga");
             toggle.onClick = [this] { syncState(); };
             addAndMakeVisible (toggle);
             toggleAttachment = std::make_unique<ButtonAttachment> (p.apvts, s.onId, toggle);
@@ -148,6 +152,19 @@ private:
                 knobs.push_back (std::move (knob));
             }
 
+            if (spec.amp)
+            {
+                loadButton.setButtonText (pt ("Carregar modelo..."));
+                loadButton.onClick = [this] { if (onLoadModel) onLoadModel(); };
+                addAndMakeVisible (loadButton);
+
+                status.setJustificationType (juce::Justification::topLeft);
+                status.setMinimumHorizontalScale (1.0f);
+                status.setFont (juce::Font (juce::FontOptions (10.0f)));
+                status.setInterceptsMouseClicks (false, false);
+                addAndMakeVisible (status);
+            }
+
             syncState();
         }
 
@@ -160,6 +177,9 @@ private:
                 shownOn = on;
                 repaint();
             }
+
+            if (spec.amp)
+                updateAmpStatus();
         }
 
         void paint (juce::Graphics& g) override
@@ -173,15 +193,15 @@ private:
             g.drawRoundedRectangle (r.reduced (0.5f), 8.0f, dragging ? 2.0f : 1.0f);
 
             g.setColour (shownOn ? accentBright : textDim);
-            g.setFont (juce::FontOptions (11.0f, juce::Font::bold));
-            g.drawText (spec.title, getLocalBounds().removeFromTop (kHeaderH).withTrimmedLeft (10).withTrimmedRight (50),
+            g.setFont (juce::FontOptions (10.5f, juce::Font::bold));
+            g.drawText (spec.title, getLocalBounds().removeFromTop (kHeaderH).withTrimmedLeft (8).withTrimmedRight (30),
                         juce::Justification::centredLeft);
         }
 
         void resized() override
         {
             auto area = getLocalBounds();
-            toggle.setBounds (area.removeFromTop (kHeaderH).removeFromRight (50).reduced (2, 3));
+            toggle.setBounds (area.removeFromTop (kHeaderH).removeFromRight (28).reduced (2, 3));
             area.reduce (4, 2);
 
             const int colW = area.getWidth() / 2;
@@ -192,6 +212,14 @@ private:
                                                   area.getY() + static_cast<int> (i / 2) * kKnobRowH, colW, kKnobRowH);
                 knobs[i]->caption.setBounds (cell.removeFromBottom (14));
                 knobs[i]->slider.setBounds (cell.reduced (2, 0));
+            }
+
+            if (spec.amp)
+            {
+                area.removeFromTop (kKnobRowH + 2);
+                loadButton.setBounds (area.removeFromTop (24));
+                area.removeFromTop (4);
+                status.setBounds (area.reduced (2, 0));
             }
         }
 
@@ -219,6 +247,39 @@ private:
         juce::MouseCursor getMouseCursor() override { return juce::MouseCursor::DraggingHandCursor; }
 
     private:
+        static juce::String pt (const char* utf8) { return juce::String::fromUTF8 (utf8); }
+
+        void updateAmpStatus()
+        {
+            using namespace hush::colours;
+
+            juce::String text;
+            juce::Colour colour = textDim;
+
+            if (! processor.ampLoaded.load())
+            {
+                text = pt ("Nenhum modelo carregado");
+            }
+            else
+            {
+                const float load = processor.ampCpuLoad.load();
+                colour = load < 0.3f ? good : load < 0.5f ? okay : load < 0.8f ? warn : bad;
+
+                text = juce::File (processor.getAmpModelPath()).getFileNameWithoutExtension()
+                       + "\nCPU " + juce::String (juce::roundToInt (load * 100.0f)) + "% do buffer";
+
+                if (processor.ampRateMismatch.load())
+                {
+                    text += pt ("\nTaxa do modelo difere da do dispositivo");
+                    colour = warn;
+                }
+            }
+
+            if (text != status.getText())
+                status.setText (text, juce::dontSendNotification);
+            status.setColour (juce::Label::textColourId, colour);
+        }
+
         struct Knob
         {
             juce::Label caption;
@@ -233,6 +294,8 @@ private:
         juce::ToggleButton toggle;
         std::unique_ptr<ButtonAttachment> toggleAttachment;
         std::vector<std::unique_ptr<Knob>> knobs;
+        juce::TextButton loadButton;
+        juce::Label status;
         bool shownOn = false, dragging = false, dragStarted = false;
     };
 
@@ -287,6 +350,43 @@ private:
         order = shown;
         processor.setChainOrder (order);
         layoutStrips();
+    }
+
+    // --- Amp (NAM) --------------------------------------------------------------
+    void chooseAmpModel()
+    {
+        const auto current = processor.getAmpModelPath();
+        const auto start = current.isNotEmpty() ? juce::File (current).getParentDirectory()
+                                                : juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
+
+        chooser = std::make_unique<juce::FileChooser> (pt ("Escolher modelo NAM"), start, "*.nam;*.wav");
+        chooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+                              [safe = juce::Component::SafePointer<PedalBoard> (this)] (const juce::FileChooser& fc)
+                              {
+                                  const auto file = fc.getResult();
+                                  if (safe == nullptr || file == juce::File())
+                                      return;
+
+                                  juce::String error;
+                                  if (safe->processor.loadAmpModel (file, error))
+                                  {
+                                      if (auto* on = safe->processor.apvts.getParameter ("ampOn")) // carregar liga o amp
+                                      {
+                                          on->beginChangeGesture();
+                                          on->setValueNotifyingHost (1.0f);
+                                          on->endChangeGesture();
+                                      }
+                                      return;
+                                  }
+
+                                  juce::AlertWindow::showAsync (juce::MessageBoxOptions()
+                                                                    .withIconType (juce::MessageBoxIconType::WarningIcon)
+                                                                    .withTitle (pt ("Não foi possível carregar o modelo"))
+                                                                    .withMessage (error)
+                                                                    .withButton ("OK")
+                                                                    .withAssociatedComponent (safe.getComponent()),
+                                                                nullptr);
+                              });
     }
 
     // --- Presets ---------------------------------------------------------------
@@ -381,6 +481,7 @@ private:
     int dragId = -1;
     float grabOffset = 0.0f;
 
+    std::unique_ptr<juce::FileChooser> chooser;
     juce::ComboBox presetBox;
     juce::TextButton saveButton, deleteButton;
     juce::StringArray userNames;

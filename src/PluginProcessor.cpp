@@ -48,7 +48,8 @@ HushRigProcessor::HushRigProcessor()
                p ("eqOn"), p ("eqLow"), p ("eqMid"), p ("eqHigh"),
                p ("chOn"), p ("chRate"), p ("chDepth"), p ("chMix"),
                p ("dlOn"), p ("dlTime"), p ("dlFeedback"), p ("dlMix"), p ("dlTone"),
-               p ("rvOn"), p ("rvRoom"), p ("rvDamp"), p ("rvMix") };
+               p ("rvOn"), p ("rvRoom"), p ("rvDamp"), p ("rvMix"),
+               p ("ampOn"), p ("ampIn"), p ("ampOut") };
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout HushRigProcessor::createLayout()
@@ -113,7 +114,17 @@ juce::AudioProcessorValueTreeState::ParameterLayout HushRigProcessor::createLayo
     addFloat ("rvDamp", "Reverb Damping", Range (0.0f, 1.0f, 0.01f), 0.5f);
     addFloat ("rvMix", "Reverb Mix", Range (0.0f, 1.0f, 0.01f), 0.25f);
 
+    addBool ("ampOn", "Amp On");
+    addFloat ("ampIn", "Amp Input", Range (-18.0f, 18.0f, 0.1f), 0.0f, "dB");
+    addFloat ("ampOut", "Amp Output", Range (-30.0f, 12.0f, 0.1f), 0.0f, "dB");
+
     return layout;
+}
+
+HushRigProcessor::~HushRigProcessor()
+{
+    delete pendingAmp.exchange (nullptr);
+    delete retiredAmp.exchange (nullptr);
 }
 
 void HushRigProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
@@ -127,6 +138,14 @@ void HushRigProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     chorus.prepare (sampleRate, 2);
     delay.prepare (sampleRate, 2);
     reverb.prepare (sampleRate, 2);
+
+    // O audio nao esta rodando aqui, entao e seguro reajustar os modelos.
+    if (activeAmp != nullptr)
+        activeAmp->prepare (sampleRate, samplesPerBlock);
+    if (auto* pending = pendingAmp.load())
+        pending->prepare (sampleRate, samplesPerBlock);
+    lastAmpIn  = juce::Decibels::decibelsToGain (pedals.ampIn->load());
+    lastAmpOut = juce::Decibels::decibelsToGain (pedals.ampOut->load());
     lastInputGain  = juce::Decibels::decibelsToGain (inputGainDb->load());
     lastOutputGain = juce::Decibels::decibelsToGain (outputGainDb->load());
 }
@@ -145,6 +164,8 @@ bool HushRigProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 void HushRigProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
 {
     juce::ScopedNoDenormals noDenormals;
+
+    adoptPendingAmp();
 
     const int numSamples  = buffer.getNumSamples();
     const int numChannels = buffer.getNumChannels();
@@ -220,6 +241,9 @@ void HushRigProcessor::runPedal (hushrig::Pedal pedal, float* const* data, int n
                 delay.process (data, numChannels, numSamples);
             }
             break;
+        case Pedal::amp:
+            processAmp (data, numChannels, numSamples);
+            break;
         case Pedal::reverb:
             if (pedals.rvOn->load() >= 0.5f)
             {
@@ -228,6 +252,112 @@ void HushRigProcessor::runPedal (hushrig::Pedal pedal, float* const* data, int n
             }
             break;
     }
+}
+
+void HushRigProcessor::adoptPendingAmp()
+{
+    if (pendingAmp.load (std::memory_order_relaxed) == nullptr)
+        return;
+
+    if (auto* incoming = pendingAmp.exchange (nullptr))
+    {
+        auto* old = activeAmp.release();
+        activeAmp.reset (incoming);
+
+        // Entrega o antigo para a UI destruir (ela coleta antes de publicar, entao o slot esta livre).
+        // Se por algum motivo nao estiver, vaza o antigo: liberar memoria aqui quebraria o tempo real.
+        hushrig::NamAmp* expected = nullptr;
+        retiredAmp.compare_exchange_strong (expected, old);
+    }
+}
+
+void HushRigProcessor::collectRetiredAmp()
+{
+    delete retiredAmp.exchange (nullptr);
+}
+
+void HushRigProcessor::processAmp (float* const* data, int numChannels, int numSamples)
+{
+    if (pedals.ampOn->load() < 0.5f || activeAmp == nullptr || ! activeAmp->isLoaded() || numChannels < 1)
+        return;
+
+    const auto start = juce::Time::getHighResolutionTicks();
+
+    // O modelo e mono: soma os canais (a entrada de guitarra costuma ser dual-mono) e espelha o resultado.
+    float* mono = data[0];
+    if (numChannels > 1)
+    {
+        juce::FloatVectorOperations::add (mono, data[1], numSamples);
+        juce::FloatVectorOperations::multiply (mono, 0.5f, numSamples);
+    }
+
+    const float inGain  = juce::Decibels::decibelsToGain (pedals.ampIn->load());
+    const float outGain = juce::Decibels::decibelsToGain (pedals.ampOut->load());
+    const float inStep  = (inGain - lastAmpIn) / static_cast<float> (numSamples);
+    const float outStep = (outGain - lastAmpOut) / static_cast<float> (numSamples);
+
+    float g = lastAmpIn;
+    for (int i = 0; i < numSamples; ++i, g += inStep)
+        mono[i] *= g;
+
+    activeAmp->process (mono, numSamples);
+
+    g = lastAmpOut;
+    for (int i = 0; i < numSamples; ++i, g += outStep)
+        mono[i] *= g;
+
+    lastAmpIn = inGain;
+    lastAmpOut = outGain;
+
+    for (int ch = 1; ch < numChannels; ++ch)
+        juce::FloatVectorOperations::copy (data[ch], mono, numSamples);
+
+    const double elapsed = juce::Time::highResolutionTicksToSeconds (juce::Time::getHighResolutionTicks() - start);
+    const double window = static_cast<double> (numSamples) / std::max (1.0, sampleRateHz.load (std::memory_order_relaxed));
+    const float load = static_cast<float> (elapsed / window);
+    const float previous = ampCpuLoad.load (std::memory_order_relaxed);
+    ampCpuLoad.store (load > previous ? load : previous * 0.95f + load * 0.05f, std::memory_order_relaxed); // sobe rapido, desce devagar
+}
+
+bool HushRigProcessor::loadAmpModel (const juce::File& file, juce::String& error)
+{
+    if (! file.existsAsFile())
+    {
+        error = juce::String::fromUTF8 ("Arquivo não encontrado.");
+        return false;
+    }
+
+    const double rate = sampleRateHz.load() > 0.0 ? sampleRateHz.load() : 48000.0;
+    const int block = blockSize.load() > 0 ? blockSize.load() : 512;
+
+    auto amp = std::make_unique<hushrig::NamAmp>();
+    amp->prepare (rate, block);
+
+    std::string message;
+    if (! amp->load (file.getFullPathName().toStdString(), message))
+    {
+        error = juce::String::fromUTF8 (message.c_str());
+        return false;
+    }
+
+    ampRateMismatch.store (amp->sampleRateMismatch());
+    ampLoaded.store (true);
+    ampCpuLoad.store (0.0f);
+    apvts.state.setProperty ("ampModel", file.getFullPathName(), nullptr);
+
+    collectRetiredAmp();
+    delete pendingAmp.exchange (amp.release()); // um modelo ainda nao adotado e descartado
+
+    return true;
+}
+
+void HushRigProcessor::loadAmpFromState()
+{
+    const auto path = getAmpModelPath();
+    juce::String ignored;
+
+    if (path.isNotEmpty())
+        loadAmpModel (juce::File (path), ignored);
 }
 
 hushrig::ChainOrder HushRigProcessor::getChainOrder() const
@@ -273,6 +403,7 @@ void HushRigProcessor::setStateInformation (const void* data, int sizeInBytes)
         {
             apvts.replaceState (juce::ValueTree::fromXml (*xml));
             loadChainOrderFromState();
+            loadAmpFromState();
         }
 }
 

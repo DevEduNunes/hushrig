@@ -6,14 +6,16 @@
 
 namespace hushrig
 {
-enum class Pedal : int { overdrive = 0, eq, chorus, delay, reverb };
+// Os ids sao estaveis (aparecem no estado salvo); a ordem padrao esta em ChainOrder::slots.
+enum class Pedal : int { overdrive = 0, eq, chorus, delay, reverb, amp };
 
-constexpr int kNumPedals = 5;
+constexpr int kNumPedals = 6;
 
-/** Ordem dos pedais na cadeia. Sempre uma permutacao valida; serializa como "0,1,2,3,4". */
+/** Ordem dos pedais na cadeia. Sempre uma permutacao valida; serializa como "0,5,1,2,3,4". */
 struct ChainOrder
 {
-    std::array<int, kNumPedals> slots { 0, 1, 2, 3, 4 };
+    // Padrao: overdrive > amp > eq > chorus > delay > reverb
+    std::array<int, kNumPedals> slots { 0, 5, 1, 2, 3, 4 };
 
     static bool isValid (const std::array<int, kNumPedals>& s)
     {

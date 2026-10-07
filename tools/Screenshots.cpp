@@ -52,6 +52,13 @@ int main (int argc, char* argv[])
     setParam (processor, "odDrive", 18.0f);
     setParam (processor, "dlMix", 0.25f);
 
+    // Amp com um modelo de exemplo (o do repositorio de testes) ligado.
+    {
+        juce::String error;
+        if (processor.loadAmpModel (juce::File (HUSHRIG_SAMPLE_MODEL), error))
+            setParam (processor, "ampOn", 1.0f);
+    }
+
     // Valores de exemplo para a tela: um dispositivo ASIO típico e um sinal tocando.
     DeviceStats sample;
     sample.fromDevice = true;
