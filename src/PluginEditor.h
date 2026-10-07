@@ -10,9 +10,11 @@
 #include "ui/HushLookAndFeel.h"
 #include "ui/LevelMeter.h"
 #include "ui/PedalBoard.h"
+#include "ui/UpdateBadge.h"
 
 class HushRigEditor final : public juce::AudioProcessorEditor,
-                            private juce::Timer
+                            private juce::Timer,
+                            private juce::ComponentListener
 {
 public:
     explicit HushRigEditor (HushRigProcessor&);
@@ -20,6 +22,7 @@ public:
 
     void paint (juce::Graphics&) override;
     void resized() override;
+    void parentHierarchyChanged() override;
 
     /** Atualiza medidores (e, se pedido, a latência). Chamado pelo timer; público para a ferramenta de screenshots. */
     void tick (bool refreshStats = false);
@@ -44,11 +47,13 @@ private:
     void timerCallback() override { tick(); }
 
     void addKnob (Knob& knob, const juce::String& caption, const char* paramId, const juce::String& suffix);
-    void setupUpdateSection();
+    void setupUpdater();
+    void attachUpdateBadge();
+    void layoutUpdateBadge();
+    void componentMovedOrResized (juce::Component&, bool, bool) override { layoutUpdateBadge(); }
     void setupRecordSection();
     void toggleRecording();
     void updateRecordView();
-    void setStatus (const juce::String& text, bool isError = false);
     void updateLatencyView();
     bool isGateBypassed() const;
 
@@ -79,15 +84,14 @@ private:
     juce::Label recordLabel;
     bool wasRecording = false;
 
-    // Atualização (apenas standalone)
-    juce::Label statusLabel;
-    juce::TextButton checkButton, installButton;
-    double progress = 0.0;
-    juce::ProgressBar progressBar { progress };
+    // Atualização (apenas standalone): o botão fica na barra de título da janela
+    UpdateBadge updateBadge;
+    juce::Component::SafePointer<juce::DocumentWindow> badgeWindow;
     Updater::ReleaseInfo pendingRelease;
+    double progress = 0.0;
 
     // Áreas calculadas em resized()
-    juce::Rectangle<int> headerArea, latencyCard, meterCard, knobCard, pedalCard, ampCard, recordCard, updateCard;
+    juce::Rectangle<int> headerArea, latencyCard, meterCard, knobCard, pedalCard, ampCard, recordCard;
     juce::Rectangle<int> inputRow, outputRow, knobInner;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (HushRigEditor)

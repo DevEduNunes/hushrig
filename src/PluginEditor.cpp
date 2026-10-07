@@ -24,7 +24,6 @@ constexpr int kKnobH = 196;
 constexpr int kPedalH = PedalBoard::kHeight + 24;
 constexpr int kAmpH = AmpPanel::kHeight + 36;
 constexpr int kRecordH = 84;
-constexpr int kUpdateH = 124;
 constexpr int kGap = 12;
 constexpr int kLabelW = 78;
 constexpr int kReadoutW = 78;
@@ -74,10 +73,9 @@ HushRigEditor::HushRigEditor (HushRigProcessor& p)
     setupRecordSection();
 
     if (showUpdateSection)
-        setupUpdateSection();
+        setupUpdater();
 
-    const int leftHeight = kHeaderH + kGap * 4 + kLatencyH + kMeterH + kKnobH + kRecordH
-                           + (showUpdateSection ? kGap + kUpdateH : 0);
+    const int leftHeight = kHeaderH + kGap * 4 + kLatencyH + kMeterH + kKnobH + kRecordH;
     const int rightHeight = kPedalH + kGap + kAmpH;
     const int height = kPad * 2 + juce::jmax (leftHeight, rightHeight);
     setSize (kWidth, height);
@@ -96,6 +94,12 @@ HushRigEditor::~HushRigEditor()
     processor.updater.onCheckDone = nullptr;
     processor.updater.onProgress = nullptr;
     processor.updater.onInstallerLaunched = nullptr;
+
+    if (badgeWindow != nullptr)
+    {
+        badgeWindow->removeComponentListener (this);
+        badgeWindow->removeChildComponent (&updateBadge);
+    }
 
     setLookAndFeel (nullptr);
 }
@@ -205,63 +209,39 @@ void HushRigEditor::updateRecordView()
     wasRecording = recording;
 }
 
-void HushRigEditor::setupUpdateSection()
+void HushRigEditor::setupUpdater()
 {
-    checkButton.setButtonText (pt ("Procurar atualizações"));
-    addAndMakeVisible (checkButton);
+    updateBadge.setVisible (false);
 
-    installButton.setButtonText (pt ("Baixar e instalar"));
-    installButton.setVisible (false);
-    addChildComponent (installButton);
-
-    progressBar.setVisible (false);
-    addChildComponent (progressBar);
-
-    statusLabel.setJustificationType (juce::Justification::topLeft);
-    statusLabel.setMinimumHorizontalScale (1.0f);
-    addAndMakeVisible (statusLabel);
-
-    auto& updater = processor.updater;
-
-    checkButton.onClick = [this]
+    updateBadge.onClick = [this]
     {
-        installButton.setVisible (false);
-        progressBar.setVisible (false);
-        checkButton.setEnabled (false);
-        setStatus (pt ("Procurando atualizações..."));
-        processor.updater.checkForUpdates();
-    };
-
-    installButton.onClick = [this]
-    {
-        installButton.setEnabled (false);
-        checkButton.setEnabled (false);
+        updateBadge.setDownloading (true);
         progress = -1.0;
-        progressBar.setVisible (true);
-        setStatus (pt ("Baixando a atualização..."));
+        updateBadge.setProgress (progress);
         processor.updater.downloadAndInstall (pendingRelease);
     };
 
-    updater.onCheckDone = [this] (Updater::CheckResult result, const Updater::ReleaseInfo& info, const juce::String& message)
-    {
-        checkButton.setEnabled (true);
-        setStatus (message, result == Updater::CheckResult::failed);
+    auto& updater = processor.updater;
 
-        if (result == Updater::CheckResult::updateAvailable)
-        {
-            pendingRelease = info;
-            installButton.setButtonText (pt ("Baixar e instalar v") + info.version);
-            installButton.setEnabled (true);
-            installButton.setVisible (true);
-        }
+    updater.onCheckDone = [this] (Updater::CheckResult result, const Updater::ReleaseInfo& info, const juce::String&)
+    {
+        // Falhas na busca automática são silenciosas: só aparece algo quando há versão nova.
+        if (result != Updater::CheckResult::updateAvailable)
+            return;
+
+        pendingRelease = info;
+        updateBadge.setAvailable (info.version);
+        layoutUpdateBadge();
     };
 
-    updater.onProgress = [this] (double p) { progress = p; };
+    updater.onProgress = [this] (double p)
+    {
+        progress = p;
+        updateBadge.setProgress (p);
+    };
 
     updater.onInstallerLaunched = [this] (bool ok, const juce::String& message)
     {
-        setStatus (message, ! ok);
-
         if (ok)
         {
             // O instalador precisa substituir o HushRig.exe, então este app se encerra.
@@ -269,16 +249,70 @@ void HushRigEditor::setupUpdateSection()
             return;
         }
 
-        progressBar.setVisible (false);
-        checkButton.setEnabled (true);
-        installButton.setEnabled (true);
+        updateBadge.setDownloading (false);
+        juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon, pt ("Atualização"), message);
     };
+
+   #if ! HUSHRIG_NO_STANDALONE_HOLDER
+    // Procura atualizações uma vez a cada abertura do app.
+    static bool checkedThisRun = false;
+
+    if (! checkedThisRun)
+    {
+        checkedThisRun = true;
+        updater.checkForUpdates();
+    }
+   #endif
 }
 
-void HushRigEditor::setStatus (const juce::String& text, bool isError)
+void HushRigEditor::parentHierarchyChanged()
 {
-    statusLabel.setColour (juce::Label::textColourId, isError ? bad : text.isEmpty() ? textDim : hush::colours::text);
-    statusLabel.setText (text, juce::dontSendNotification);
+    attachUpdateBadge();
+}
+
+// O botão vive na barra de título da janela standalone (ao lado de minimizar/fechar), não dentro do editor.
+void HushRigEditor::attachUpdateBadge()
+{
+    if (! showUpdateSection)
+        return;
+
+    auto* window = findParentComponentOfClass<juce::DocumentWindow>();
+
+    if (window == badgeWindow.getComponent())
+        return;
+
+    if (badgeWindow != nullptr)
+    {
+        badgeWindow->removeComponentListener (this);
+        badgeWindow->removeChildComponent (&updateBadge);
+    }
+
+    badgeWindow = window;
+
+    if (window != nullptr)
+    {
+        window->addChildComponent (updateBadge);
+        window->addComponentListener (this);
+        layoutUpdateBadge();
+    }
+}
+
+void HushRigEditor::layoutUpdateBadge()
+{
+    if (badgeWindow == nullptr)
+        return;
+
+    const auto title = badgeWindow->getLocalBounds().removeFromTop (badgeWindow->getTitleBarHeight());
+    const int w = updateBadge.getIdealWidth();
+    int right = title.getRight() - 8;
+
+    if (auto* minimise = badgeWindow->getMinimiseButton())
+        right = minimise->getX() - 10;
+    else if (auto* close = badgeWindow->getCloseButton())
+        right = close->getX() - 10;
+
+    updateBadge.setBounds (right - w, title.getCentreY() - UpdateBadge::kHeight / 2, w, UpdateBadge::kHeight);
+    updateBadge.toFront (false);
 }
 
 void HushRigEditor::updateLatencyView()
@@ -459,13 +493,6 @@ void HushRigEditor::paint (juce::Graphics& g)
     // --- Gravação ----------------------------------------------------------
     drawCard (g, recordCard);
     drawSectionTitle (g, pt ("GRAVAÇÃO"), recordCard.reduced (16, 12).removeFromTop (16));
-
-    // --- Atualizações ------------------------------------------------------
-    if (showUpdateSection)
-    {
-        drawCard (g, updateCard);
-        drawSectionTitle (g, pt ("ATUALIZAÇÕES"), updateCard.reduced (16, 12).removeFromTop (16));
-    }
 }
 
 void HushRigEditor::resized()
@@ -484,12 +511,6 @@ void HushRigEditor::resized()
     knobCard = area.removeFromTop (kKnobH);
     area.removeFromTop (kGap);
     recordCard = area.removeFromTop (kRecordH);
-
-    if (showUpdateSection)
-    {
-        area.removeFromTop (kGap);
-        updateCard = area.removeFromTop (kUpdateH);
-    }
 
     pedalCard = right.removeFromTop (kPedalH);
     right.removeFromTop (kGap);
@@ -529,20 +550,4 @@ void HushRigEditor::resized()
     folderButton.setBounds (rbuttons.removeFromLeft (120));
     rbuttons.removeFromLeft (14);
     recordLabel.setBounds (rbuttons);
-
-    if (! showUpdateSection)
-        return;
-
-    auto u = updateCard.reduced (16, 12);
-    u.removeFromTop (22);
-
-    auto buttons = u.removeFromTop (32);
-    checkButton.setBounds (buttons.removeFromLeft (buttons.getWidth() / 2 - 4));
-    buttons.removeFromLeft (8);
-    installButton.setBounds (buttons);
-
-    u.removeFromTop (8);
-    progressBar.setBounds (u.removeFromTop (14));
-    u.removeFromTop (4);
-    statusLabel.setBounds (u);
 }

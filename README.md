@@ -35,7 +35,7 @@ O HushRig ataca os dois: um **noise gate de latência zero** feito para guitarra
 - **Ganho de entrada e de saída** com transição suave (sem cliques)
 - **Standalone e VST3** com o mesmo código
 - **Entrada mono** espelhada nos dois canais (guitarra em estéreo no fone)
-- **Atualização dentro do app**: procura novas versões no GitHub e instala com um clique
+- **Atualização dentro do app**: ao abrir, procura novas versões no GitHub; se houver, aparece um ícone de download na barra de título e um clique baixa e instala
 - **Instalador completo** que já instala o driver ASIO [FlexASIO](https://github.com/dechamps/FlexASIO)
 
 ## 🖼️ Screenshots
@@ -43,7 +43,6 @@ O HushRig ataca os dois: um **noise gate de latência zero** feito para guitarra
 <table>
   <tr>
     <td align="center"><img src="docs/images/app-main.png" alt="Tela principal" width="380"><br><sub>Tela principal</sub></td>
-    <td align="center"><img src="docs/images/app-update.png" alt="Atualização disponível" width="380"><br><sub>Atualização disponível</sub></td>
   </tr>
 </table>
 
@@ -105,7 +104,7 @@ O software ajuda, mas confira também a origem:
 
 ## 🔄 Atualizações
 
-No app standalone, clique em **Procurar atualizações**. Se houver uma versão nova, aparece o botão **Baixar e instalar**: o app baixa o instalador da release, confere o SHA-256 e reinicia já atualizado.
+No app standalone, toda vez que você abre o HushRig ele procura uma versão nova no GitHub. Se houver, aparece um ícone de download com o número da versão na barra de título: clique nele e o app baixa o instalador da release, confere o SHA-256 e reinicia já atualizado.
 
 ## 🗺️ Roadmap
 
