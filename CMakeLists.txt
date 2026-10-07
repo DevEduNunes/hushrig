@@ -44,6 +44,7 @@ target_sources(HushRig PRIVATE
     src/PresetManager.h
     src/ui/HushLookAndFeel.h
     src/ui/LevelMeter.h
+    src/ui/PedalBoard.h
     src/update/Updater.cpp
     src/update/Updater.h
     src/update/Sha256.h

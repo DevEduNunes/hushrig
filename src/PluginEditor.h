@@ -8,6 +8,7 @@
 #include "PluginProcessor.h"
 #include "ui/HushLookAndFeel.h"
 #include "ui/LevelMeter.h"
+#include "ui/PedalBoard.h"
 
 class HushRigEditor final : public juce::AudioProcessorEditor,
                             private juce::Timer
@@ -68,6 +69,9 @@ private:
 
     LatencyView latency;
 
+    // Pedais e presets
+    PedalBoard pedalBoard;
+
     // Gravação em WAV
     juce::TextButton recordButton, folderButton;
     juce::Label recordLabel;
@@ -81,7 +85,7 @@ private:
     Updater::ReleaseInfo pendingRelease;
 
     // Áreas calculadas em resized()
-    juce::Rectangle<int> headerArea, latencyCard, meterCard, knobCard, recordCard, updateCard;
+    juce::Rectangle<int> headerArea, latencyCard, meterCard, knobCard, pedalCard, recordCard, updateCard;
     juce::Rectangle<int> inputRow, outputRow, knobInner;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (HushRigEditor)
