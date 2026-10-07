@@ -38,6 +38,8 @@ public:
         setColour (juce::TextButton::textColourOffId, accentBright);
         setColour (juce::TextButton::textColourOnId, accentBright);
         setColour (juce::ToggleButton::textColourId, text);
+        setColour (juce::ToggleButton::tickColourId, accentBright);
+        setColour (juce::ToggleButton::tickDisabledColourId, textDim);
         setColour (juce::ProgressBar::foregroundColourId, accent);
         setColour (juce::ProgressBar::backgroundColourId, track);
     }

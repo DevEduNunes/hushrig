@@ -21,12 +21,14 @@ Toque direto no PC com baixa latência e sem chiado.
 Guitarra ligada direto no PC costuma dar dois problemas: **chiado** (captadores single coil, ganho alto, ruído da USB) e **delay** (drivers de áudio padrão do Windows com buffers grandes).
 O HushRig ataca os dois: um **noise gate de latência zero** feito para guitarra e um caminho de áudio pensado para rodar com **ASIO**.
 
-> ⚠️ Projeto em fase inicial (v0.1). Hoje ele tem o gate e os ganhos. Os pedais estão no [roadmap](#-roadmap).
+> ⚠️ Projeto em fase inicial. Hoje ele tem gate, ganhos, pedais e presets. O amp sim está no [roadmap](#-roadmap).
 
 ## ✨ Recursos
 
 - **Medidor de latência**: mostra em ms a latência real reportada pelo driver (entrada, saída, buffer, CPU) com dicas para reduzir
 - **Medidores de nível** de entrada e saída, com marcador do threshold e indicador de gate aberto/fechado
+- **Pedais** de overdrive, EQ, chorus, delay e reverb, com ordem ajustável (arraste) e **presets** (de fábrica e seus)
+- **Amp sim** com modelos `.nam` do [Neural Amp Modeler](https://www.neuralampmodeler.com/): 0 ms de latência adicionada e medidor de CPU do amp
 - **Noise gate** com threshold, hold e release — sem lookahead, ou seja, **zero latência** adicionada
 - **Gravação em WAV** (24 bits, áudio já processado) com um clique, salva em Documentos\HushRig
 - **Tema escuro** (preto e roxo) com knobs rotativos
@@ -92,10 +94,10 @@ No app standalone, clique em **Procurar atualizações**. Se houver uma versão 
 - [x] Noise gate (threshold, hold, release) com testes
 - [x] Instalador com FlexASIO e atualização dentro do app
 - [x] Medidor de latência e medidores de nível
-- [ ] Pedais: overdrive, delay, reverb, chorus e EQ
-- [ ] Cadeia de pedais reordenável e presets
+- [x] Pedais: overdrive, delay, reverb, chorus e EQ
+- [x] Cadeia de pedais reordenável (arraste o título) e presets
 - [x] Gravação em WAV
-- [ ] Amp sim com modelos [Neural Amp Modeler](https://www.neuralampmodeler.com/)
+- [x] Amp sim com modelos [Neural Amp Modeler](https://www.neuralampmodeler.com/) (carregue um `.nam`; latência adicional zero)
 - [ ] Interface própria com pedais visuais
 
 ## 🛠️ Compilando
@@ -115,7 +117,7 @@ src/dsp/        # DSP sem dependência do JUCE (testável)
 src/update/     # verificação de versão, SHA-256 e atualizador
 src/            # processador e editor do plugin
 tests/          # testes (Catch2)
-tools/          # gerador de screenshots do README
+tools/          # gerador de screenshots do README e hushrig_ampbench (mede o custo de um modelo .nam)
 installer/      # script do instalador (Inno Setup)
 ```
 
@@ -123,6 +125,18 @@ installer/      # script do instalador (Inno Setup)
 
 Issues e pull requests são bem-vindos. Para lançar uma versão, crie uma tag `vX.Y.Z`: o CI compila e publica a release com o instalador.
 
+### Medindo um modelo NAM
+
+O `hushrig_ampbench` (compilado junto com o projeto) mostra quanto do tempo do buffer um modelo usa, em buffers de 64 a 512 amostras:
+
+```bash
+build/Release/hushrig_ampbench.exe meu-modelo.nam 48000
+```
+
+Abaixo de ~50% (p99) é seguro; acima disso prefira um modelo mais leve ou um buffer maior.
+
 ## 📄 Licença
 
 [AGPL-3.0](LICENSE), compatível com a licença do [JUCE](https://juce.com).
+
+O amp sim usa o [NeuralAmpModelerCore](https://github.com/sdatkinson/NeuralAmpModelerCore) (MIT), que inclui o [Eigen](https://eigen.tuxfamily.org) (MPL-2.0) e o [nlohmann/json](https://github.com/nlohmann/json) (MIT). Os modelos de teste em `tests/data/` vêm do repositório do NAM Core.
