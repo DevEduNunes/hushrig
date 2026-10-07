@@ -77,6 +77,7 @@ target_sources(HushRig PRIVATE
     src/PresetManager.cpp
     src/PresetManager.h
     src/ui/AmpPanel.h
+    src/ui/CardLayout.h
     src/ui/HushLookAndFeel.h
     src/ui/LevelMeter.h
     src/ui/PedalBoard.h
@@ -145,7 +146,7 @@ enable_testing()
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(Catch)
 
-add_executable(hushrig_tests tests/NoiseGateTests.cpp tests/VersionCompareTests.cpp tests/Sha256Tests.cpp tests/PedalTests.cpp tests/ChainOrderTests.cpp
+add_executable(hushrig_tests tests/NoiseGateTests.cpp tests/VersionCompareTests.cpp tests/Sha256Tests.cpp tests/PedalTests.cpp tests/ChainOrderTests.cpp tests/CardLayoutTests.cpp
     tests/NamAmpTests.cpp src/amp/NamAmp.cpp)
 target_compile_options(hushrig_tests PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
 target_include_directories(hushrig_tests PRIVATE src)

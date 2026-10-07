@@ -1,5 +1,7 @@
 #include "PluginEditor.h"
 
+#include <algorithm>
+
 #include "DeviceInfo.h"
 
 namespace
@@ -14,9 +16,14 @@ juce::String dbText (float db)
 }
 
 constexpr int kPad = 20;
-constexpr int kColW = 680;   // largura útil de cada coluna
-constexpr int kColGap = 20;  // espaço entre a coluna esquerda e a direita (pedais/amp)
+constexpr int kColW = 680;     // largura útil de cada coluna na janela inicial
+constexpr int kMinColW = 640;  // abaixo disto uma coluna não cabe mais: o layout reduz o número de colunas
+constexpr int kMaxCols = 3;
+constexpr int kColGap = 20;    // espaço horizontal entre colunas
 constexpr int kWidth = kPad * 2 + kColW * 2 + kColGap;
+constexpr int kMinWidth = kPad * 2 + kMinColW;
+constexpr int kMinHeight = 420;
+constexpr int kDragStartPx = 6;
 constexpr int kHeaderH = 56;
 constexpr int kLatencyH = 118;
 constexpr int kMeterH = 108;
@@ -35,6 +42,11 @@ void drawCard (juce::Graphics& g, juce::Rectangle<int> area)
     g.fillRoundedRectangle (r, 10.0f);
     g.setColour (border);
     g.drawRoundedRectangle (r.reduced (0.5f), 10.0f, 1.0f);
+
+    // Pontinhos no topo: indicam que o card pode ser arrastado.
+    g.setColour (border.brighter (0.5f));
+    for (int i = -2; i <= 2; ++i)
+        g.fillEllipse (r.getCentreX() + static_cast<float> (i) * 7.0f - 1.5f, r.getY() + 4.0f, 3.0f, 3.0f);
 }
 
 void drawSectionTitle (juce::Graphics& g, const juce::String& text, juce::Rectangle<int> area,
@@ -43,6 +55,17 @@ void drawSectionTitle (juce::Graphics& g, const juce::String& text, juce::Rectan
     g.setColour (textDim);
     g.setFont (juce::FontOptions (11.0f, juce::Font::bold));
     g.drawText (text, area, just);
+}
+
+const std::array<int, hushrig::kNumCards>& cardHeights()
+{
+    static const std::array<int, hushrig::kNumCards> heights { kLatencyH, kMeterH, kKnobH, kRecordH, kPedalH, kAmpH };
+    return heights;
+}
+
+hushrig::CardLayout::Result flowCards (const std::vector<int>& order, int areaWidth)
+{
+    return hushrig::CardLayout::flow (order, cardHeights(), areaWidth, kColGap, kGap, kMinColW, kMaxCols);
 }
 } // namespace
 
@@ -75,9 +98,13 @@ HushRigEditor::HushRigEditor (HushRigProcessor& p)
     if (showUpdateSection)
         setupUpdater();
 
-    const int leftHeight = kHeaderH + kGap * 4 + kLatencyH + kMeterH + kKnobH + kRecordH;
-    const int rightHeight = kPedalH + kGap + kAmpH;
-    const int height = kPad * 2 + juce::jmax (leftHeight, rightHeight);
+    cardOrder = hushrig::CardLayout::fromString (processor.apvts.state.getProperty ("cardOrder").toString().toStdString());
+
+    // Janela redimensionável: os cards se reorganizam em 1, 2 ou 3 colunas conforme a largura.
+    setResizable (true, ! showUpdateSection); // no standalone a própria janela já tem bordas redimensionáveis
+    setResizeLimits (kMinWidth, kMinHeight, 4000, 3200);
+
+    const int height = kPad * 2 + kHeaderH + kGap + flowCards (cardOrder, kWidth - kPad * 2).contentHeight;
     setSize (kWidth, height);
 
     updateLatencyView();
@@ -291,6 +318,8 @@ void HushRigEditor::attachUpdateBadge()
 
     if (window != nullptr)
     {
+        // O standalone só traz minimizar e fechar; o botão quadrado maximiza/restaura a janela.
+        window->setTitleBarButtonsRequired (juce::DocumentWindow::allButtons, false);
         window->addChildComponent (updateBadge);
         window->addComponentListener (this);
         layoutUpdateBadge();
@@ -497,24 +526,26 @@ void HushRigEditor::paint (juce::Graphics& g)
 
 void HushRigEditor::resized()
 {
-    auto full = getLocalBounds().reduced (kPad);
-    auto area = full.removeFromLeft (kColW);
-    full.removeFromLeft (kColGap);
-    auto right = full;   // coluna da direita: pedais e amp
+    auto area = getLocalBounds().reduced (kPad);
 
     headerArea = area.removeFromTop (kHeaderH);
     area.removeFromTop (kGap);
-    latencyCard = area.removeFromTop (kLatencyH);
-    area.removeFromTop (kGap);
-    meterCard = area.removeFromTop (kMeterH);
-    area.removeFromTop (kGap);
-    knobCard = area.removeFromTop (kKnobH);
-    area.removeFromTop (kGap);
-    recordCard = area.removeFromTop (kRecordH);
 
-    pedalCard = right.removeFromTop (kPedalH);
-    right.removeFromTop (kGap);
-    ampCard = right.removeFromTop (kAmpH);
+    for (const auto& p : flowCards (cardOrder, area.getWidth()).cards)
+    {
+        const juce::Rectangle<int> rect (area.getX() + p.x, area.getY() + p.y, p.w, p.h);
+        cardRects[static_cast<size_t> (p.card)] = rect;
+
+        switch (static_cast<hushrig::Card> (p.card))
+        {
+            case hushrig::Card::latency: latencyCard = rect; break;
+            case hushrig::Card::meters:  meterCard = rect;   break;
+            case hushrig::Card::knobs:   knobCard = rect;    break;
+            case hushrig::Card::record:  recordCard = rect;  break;
+            case hushrig::Card::pedals:  pedalCard = rect;   break;
+            case hushrig::Card::amp:     ampCard = rect;     break;
+        }
+    }
 
     // Medidores
     auto m = meterCard.reduced (16, 12);
@@ -550,4 +581,119 @@ void HushRigEditor::resized()
     folderButton.setBounds (rbuttons.removeFromLeft (120));
     rbuttons.removeFromLeft (14);
     recordLabel.setBounds (rbuttons);
+}
+
+// --- Arrastar cards ----------------------------------------------------------
+// Pegue um card por qualquer área livre dele (fora dos controles) e solte em outra posição.
+
+int HushRigEditor::cardAt (juce::Point<int> p) const
+{
+    for (int i = 0; i < hushrig::kNumCards; ++i)
+        if (cardRects[static_cast<size_t> (i)].contains (p))
+            return i;
+
+    return -1;
+}
+
+void HushRigEditor::mouseDown (const juce::MouseEvent& e)
+{
+    dragCard = cardAt (e.getPosition());
+    isDraggingCard = false;
+    dropTarget = -1;
+}
+
+void HushRigEditor::mouseDrag (const juce::MouseEvent& e)
+{
+    if (dragCard < 0)
+        return;
+
+    if (! isDraggingCard && e.getDistanceFromDragStart() > kDragStartPx)
+    {
+        isDraggingCard = true;
+        setMouseCursor (juce::MouseCursor::DraggingHandCursor);
+    }
+
+    if (isDraggingCard)
+    {
+        updateDropTarget (e.getPosition());
+        repaint();
+    }
+}
+
+void HushRigEditor::updateDropTarget (juce::Point<int> p)
+{
+    // O card mais próximo do ponteiro (pela distância ao centro) é a referência; acima do centro = antes dele.
+    int best = -1;
+    float bestDistance = 0.0f;
+
+    for (int i = 0; i < hushrig::kNumCards; ++i)
+    {
+        if (i == dragCard)
+            continue;
+
+        const auto rect = cardRects[static_cast<size_t> (i)];
+        const float d = rect.getCentre().toFloat().getDistanceFrom (p.toFloat());
+
+        if (rect.contains (p) || best < 0 || d < bestDistance)
+        {
+            best = i;
+            bestDistance = rect.contains (p) ? -1.0f : d;
+        }
+    }
+
+    dropTarget = best;
+    dropBefore = best < 0 || p.y < cardRects[static_cast<size_t> (best)].getCentreY();
+}
+
+void HushRigEditor::applyCardDrop()
+{
+    if (dragCard < 0 || dropTarget < 0)
+        return;
+
+    auto order = cardOrder;
+    order.erase (std::remove (order.begin(), order.end(), dragCard), order.end());
+
+    const auto at = std::find (order.begin(), order.end(), dropTarget);
+    order.insert (dropBefore ? at : at + 1, dragCard);
+
+    if (! hushrig::CardLayout::isValid (order) || order == cardOrder)
+        return;
+
+    cardOrder = order;
+    processor.apvts.state.setProperty ("cardOrder", juce::String (hushrig::CardLayout::toString (order)), nullptr);
+    resized();
+}
+
+void HushRigEditor::mouseUp (const juce::MouseEvent&)
+{
+    if (isDraggingCard)
+        applyCardDrop();
+
+    dragCard = -1;
+    isDraggingCard = false;
+    dropTarget = -1;
+    setMouseCursor (juce::MouseCursor::NormalCursor);
+    repaint();
+}
+
+void HushRigEditor::paintOverChildren (juce::Graphics& g)
+{
+    if (! isDraggingCard || dragCard < 0)
+        return;
+
+    // Card arrastado fica esmaecido, com o contorno em destaque.
+    const auto dragged = cardRects[static_cast<size_t> (dragCard)].toFloat();
+    g.setColour (juce::Colours::black.withAlpha (0.5f));
+    g.fillRoundedRectangle (dragged, 10.0f);
+    g.setColour (accent);
+    g.drawRoundedRectangle (dragged.reduced (0.5f), 10.0f, 2.0f);
+
+    // Barra mostrando onde ele vai cair.
+    if (dropTarget >= 0)
+    {
+        const auto target = cardRects[static_cast<size_t> (dropTarget)];
+        const int y = dropBefore ? target.getY() - kGap / 2 - 1 : target.getBottom() + kGap / 2 - 1;
+        g.setColour (accentBright);
+        g.fillRoundedRectangle (static_cast<float> (target.getX()), static_cast<float> (y), static_cast<float> (target.getWidth()), 3.0f, 1.5f);
+    }
 }
