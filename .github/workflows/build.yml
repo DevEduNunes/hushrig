@@ -6,6 +6,11 @@ on:
     tags: ['v*']
   pull_request:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Tag da release a criar (ex.: v0.2.0). Vazio = so compila, sem publicar.'
+        required: false
+        default: ''
 
 jobs:
   windows:
@@ -17,8 +22,13 @@ jobs:
 
       - name: Version
         shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }} # via env (nao interpolado no script) para evitar injecao de comando
         run: |
-          if ($env:GITHUB_REF -like 'refs/tags/v*') { $v = $env:GITHUB_REF_NAME.TrimStart('v') } else { $v = '0.1.0' }
+          $tag = $env:RELEASE_TAG
+          if ($env:GITHUB_REF -like 'refs/tags/v*') { $v = $env:GITHUB_REF_NAME.TrimStart('v') }
+          elseif ($tag -match '^v\d+\.\d+\.\d+$') { $v = $tag.TrimStart('v') }
+          else { $v = '0.1.0' }
           "HUSHRIG_VERSION=$v" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
           Write-Host "Versao: $v"
 
@@ -92,8 +102,11 @@ jobs:
           if-no-files-found: error
 
       - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
         uses: softprops/action-gh-release@v2
         with:
+          # Em push de tag usa a propria tag; no disparo manual cria a tag no commit compilado.
+          tag_name: ${{ inputs.release_tag || github.ref_name }}
+          target_commitish: ${{ github.sha }}
           files: dist/*.exe
           generate_release_notes: true
