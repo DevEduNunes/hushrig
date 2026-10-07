@@ -50,7 +50,9 @@ TEST_CASE ("NamAmp rejeita arquivo invalido e preserva o modelo anterior")
     amp.prepare (48000.0, 128);
 
     std::string error;
-    REQUIRE (amp.load (kDir + "/wavenet.nam", error));
+    const bool loaded = amp.load (kDir + "/wavenet.nam", error);
+    INFO ("erro: " << error << " | dir: " << kDir);
+    REQUIRE (loaded);
     REQUIRE (amp.isLoaded());
 
     REQUIRE_FALSE (amp.load (kDir + "/nao-existe.nam", error));
@@ -68,7 +70,9 @@ TEST_CASE ("NamAmp processa WaveNet e LSTM com saida finita e diferente da entra
             amp.prepare (48000.0, 128);
 
             std::string error;
-            REQUIRE (amp.load (kDir + "/" + file, error));
+            const bool loaded = amp.load (kDir + "/" + file, error);
+            INFO ("erro: " << error << " | dir: " << kDir);
+            REQUIRE (loaded);
             REQUIRE (amp.latencySamples() == 0);
 
             const auto in = guitarLike (4800);
@@ -90,7 +94,9 @@ TEST_CASE ("NamAmp e deterministico apos prepare")
     a.prepare (48000.0, 64);
     b.prepare (48000.0, 64);
     std::string error;
-    REQUIRE (a.load (kDir + "/wavenet.nam", error));
+    const bool loadedA = a.load (kDir + "/wavenet.nam", error);
+    INFO ("erro: " << error << " | dir: " << kDir);
+    REQUIRE (loadedA);
     REQUIRE (b.load (kDir + "/wavenet.nam", error));
 
     auto x = guitarLike (640), y = x;
