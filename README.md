@@ -93,7 +93,7 @@ No app standalone, clique em **Procurar atualizações**. Se houver uma versão 
 - [x] Instalador com FlexASIO e atualização dentro do app
 - [x] Medidor de latência e medidores de nível
 - [ ] Pedais: overdrive, delay, reverb, chorus e EQ (DSP e testes prontos; falta ligar na cadeia e na interface)
-- [ ] Cadeia de pedais reordenável e presets
+- [ ] Cadeia de pedais reordenável e presets (motor pronto: ordem persistida e presets de fábrica/usuário; falta a interface)
 - [x] Gravação em WAV
 - [ ] Amp sim com modelos [Neural Amp Modeler](https://www.neuralampmodeler.com/)
 - [ ] Interface própria com pedais visuais

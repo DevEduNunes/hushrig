@@ -2,7 +2,9 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
+#include "PresetManager.h"
 #include "Recorder.h"
+#include "dsp/ChainOrder.h"
 #include "dsp/Chorus.h"
 #include "dsp/Delay.h"
 #include "dsp/Eq3.h"
@@ -40,8 +42,13 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    // Ordem dos pedais (thread da UI escreve; a de audio le). Persistida no estado do plugin.
+    hushrig::ChainOrder getChainOrder() const;
+    void setChainOrder (const hushrig::ChainOrder& order);
+
     juce::AudioProcessorValueTreeState apvts;
     hushrig::Recorder recorder; // gravação em WAV (acionada pela interface)
+    PresetManager presets { *this }; // presets de fabrica e do usuario
     Updater updater; // vive com o processador; o editor só liga/desliga os callbacks
 
     // Telemetria para a interface (escrita na thread de áudio, lida pela UI).
@@ -62,7 +69,12 @@ private:
     hushrig::Delay delay;
     hushrig::Reverb reverb;
 
-    // Parametros dos pedais (ids em createLayout). Ordem fixa por enquanto: OD > EQ > Chorus > Delay > Reverb.
+    // Parametros dos pedais (ids em createLayout).
+    void runPedal (hushrig::Pedal pedal, float* const* data, int numChannels, int numSamples);
+    void loadChainOrderFromState();
+
+    std::array<std::atomic<int>, hushrig::kNumPedals> chainSlots;
+
     struct PedalParams
     {
         std::atomic<float> *odOn, *odDrive, *odTone, *odLevel;

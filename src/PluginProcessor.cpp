@@ -40,6 +40,9 @@ HushRigProcessor::HushRigProcessor()
     gateBypass      = apvts.getRawParameterValue ("gateBypass");
     outputGainDb    = apvts.getRawParameterValue ("outputGain");
 
+    for (size_t i = 0; i < chainSlots.size(); ++i)
+        chainSlots[i].store (static_cast<int> (i));
+
     auto p = [this] (const char* id) { return apvts.getRawParameterValue (id); };
     pedals = { p ("odOn"), p ("odDrive"), p ("odTone"), p ("odLevel"),
                p ("eqOn"), p ("eqLow"), p ("eqMid"), p ("eqHigh"),
@@ -171,31 +174,8 @@ void HushRigProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
 
     auto* const* data = buffer.getArrayOfWritePointers();
 
-    if (pedals.odOn->load() >= 0.5f)
-    {
-        overdrive.setParams ({ pedals.odDrive->load(), pedals.odTone->load(), pedals.odLevel->load() });
-        overdrive.process (data, numChannels, numSamples);
-    }
-    if (pedals.eqOn->load() >= 0.5f)
-    {
-        eq.setParams ({ pedals.eqLow->load(), pedals.eqMid->load(), pedals.eqHigh->load() });
-        eq.process (data, numChannels, numSamples);
-    }
-    if (pedals.chOn->load() >= 0.5f)
-    {
-        chorus.setParams ({ pedals.chRate->load(), pedals.chDepth->load(), pedals.chMix->load() });
-        chorus.process (data, numChannels, numSamples);
-    }
-    if (pedals.dlOn->load() >= 0.5f)
-    {
-        delay.setParams ({ pedals.dlTime->load(), pedals.dlFeedback->load(), pedals.dlMix->load(), pedals.dlTone->load() });
-        delay.process (data, numChannels, numSamples);
-    }
-    if (pedals.rvOn->load() >= 0.5f)
-    {
-        reverb.setParams ({ pedals.rvRoom->load(), pedals.rvDamp->load(), pedals.rvMix->load() });
-        reverb.process (data, numChannels, numSamples);
-    }
+    for (auto& slot : chainSlots)
+        runPedal (static_cast<hushrig::Pedal> (slot.load (std::memory_order_relaxed)), data, numChannels, numSamples);
 
     const float outGain = juce::Decibels::decibelsToGain (outputGainDb->load());
     buffer.applyGainRamp (0, numSamples, lastOutputGain, outGain);
@@ -204,6 +184,75 @@ void HushRigProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     raisePeak (outputPeak, maxMagnitude (buffer));
     recorder.write (buffer);
     gateOpen.store (gateActive ? gate.isOpen() : true, std::memory_order_relaxed);
+}
+
+void HushRigProcessor::runPedal (hushrig::Pedal pedal, float* const* data, int numChannels, int numSamples)
+{
+    using hushrig::Pedal;
+
+    switch (pedal)
+    {
+        case Pedal::overdrive:
+            if (pedals.odOn->load() >= 0.5f)
+            {
+                overdrive.setParams ({ pedals.odDrive->load(), pedals.odTone->load(), pedals.odLevel->load() });
+                overdrive.process (data, numChannels, numSamples);
+            }
+            break;
+        case Pedal::eq:
+            if (pedals.eqOn->load() >= 0.5f)
+            {
+                eq.setParams ({ pedals.eqLow->load(), pedals.eqMid->load(), pedals.eqHigh->load() });
+                eq.process (data, numChannels, numSamples);
+            }
+            break;
+        case Pedal::chorus:
+            if (pedals.chOn->load() >= 0.5f)
+            {
+                chorus.setParams ({ pedals.chRate->load(), pedals.chDepth->load(), pedals.chMix->load() });
+                chorus.process (data, numChannels, numSamples);
+            }
+            break;
+        case Pedal::delay:
+            if (pedals.dlOn->load() >= 0.5f)
+            {
+                delay.setParams ({ pedals.dlTime->load(), pedals.dlFeedback->load(), pedals.dlMix->load(), pedals.dlTone->load() });
+                delay.process (data, numChannels, numSamples);
+            }
+            break;
+        case Pedal::reverb:
+            if (pedals.rvOn->load() >= 0.5f)
+            {
+                reverb.setParams ({ pedals.rvRoom->load(), pedals.rvDamp->load(), pedals.rvMix->load() });
+                reverb.process (data, numChannels, numSamples);
+            }
+            break;
+    }
+}
+
+hushrig::ChainOrder HushRigProcessor::getChainOrder() const
+{
+    hushrig::ChainOrder order;
+    for (size_t i = 0; i < chainSlots.size(); ++i)
+        order.slots[i] = chainSlots[i].load();
+    return order;
+}
+
+void HushRigProcessor::setChainOrder (const hushrig::ChainOrder& order)
+{
+    if (! hushrig::ChainOrder::isValid (order.slots))
+        return;
+
+    // Valores intermediarios podem repetir um pedal por um bloco; aceitavel (so troca de ordem).
+    for (size_t i = 0; i < chainSlots.size(); ++i)
+        chainSlots[i].store (order.slots[i]);
+    apvts.state.setProperty ("chainOrder", juce::String (order.toString()), nullptr);
+}
+
+void HushRigProcessor::loadChainOrderFromState()
+{
+    const auto text = apvts.state.getProperty ("chainOrder").toString().toStdString();
+    setChainOrder (hushrig::ChainOrder::fromString (text));
 }
 
 juce::AudioProcessorEditor* HushRigProcessor::createEditor()
@@ -221,7 +270,10 @@ void HushRigProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     if (auto xml = getXmlFromBinary (data, sizeInBytes))
         if (xml->hasTagName (apvts.state.getType()))
+        {
             apvts.replaceState (juce::ValueTree::fromXml (*xml));
+            loadChainOrderFromState();
+        }
 }
 
 // Ponto de entrada exigido pelo JUCE para criar o plugin / app standalone.
