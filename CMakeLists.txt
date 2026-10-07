@@ -97,7 +97,7 @@ enable_testing()
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(Catch)
 
-add_executable(hushrig_tests tests/NoiseGateTests.cpp tests/VersionCompareTests.cpp tests/Sha256Tests.cpp)
+add_executable(hushrig_tests tests/NoiseGateTests.cpp tests/VersionCompareTests.cpp tests/Sha256Tests.cpp tests/PedalTests.cpp)
 target_compile_options(hushrig_tests PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
 target_include_directories(hushrig_tests PRIVATE src)
 target_link_libraries(hushrig_tests PRIVATE Catch2::Catch2WithMain)
