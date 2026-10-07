@@ -13,8 +13,10 @@ juce::String dbText (float db)
     return db <= -99.0f ? pt ("-∞ dB") : juce::String (db, 1) + " dB";
 }
 
-constexpr int kWidth = 720;
 constexpr int kPad = 20;
+constexpr int kColW = 680;   // largura útil de cada coluna
+constexpr int kColGap = 20;  // espaço entre a coluna esquerda e a direita (pedais/amp)
+constexpr int kWidth = kPad * 2 + kColW * 2 + kColGap;
 constexpr int kHeaderH = 56;
 constexpr int kLatencyH = 118;
 constexpr int kMeterH = 108;
@@ -74,8 +76,10 @@ HushRigEditor::HushRigEditor (HushRigProcessor& p)
     if (showUpdateSection)
         setupUpdateSection();
 
-    const int height = kPad * 2 + kHeaderH + kGap * 6 + kLatencyH + kMeterH + kKnobH + kPedalH + kAmpH + kRecordH
-                       + (showUpdateSection ? kGap + kUpdateH : 0);
+    const int leftHeight = kHeaderH + kGap * 4 + kLatencyH + kMeterH + kKnobH + kRecordH
+                           + (showUpdateSection ? kGap + kUpdateH : 0);
+    const int rightHeight = kPedalH + kGap + kAmpH;
+    const int height = kPad * 2 + juce::jmax (leftHeight, rightHeight);
     setSize (kWidth, height);
 
     updateLatencyView();
@@ -466,7 +470,10 @@ void HushRigEditor::paint (juce::Graphics& g)
 
 void HushRigEditor::resized()
 {
-    auto area = getLocalBounds().reduced (kPad);
+    auto full = getLocalBounds().reduced (kPad);
+    auto area = full.removeFromLeft (kColW);
+    full.removeFromLeft (kColGap);
+    auto right = full;   // coluna da direita: pedais e amp
 
     headerArea = area.removeFromTop (kHeaderH);
     area.removeFromTop (kGap);
@@ -476,10 +483,6 @@ void HushRigEditor::resized()
     area.removeFromTop (kGap);
     knobCard = area.removeFromTop (kKnobH);
     area.removeFromTop (kGap);
-    pedalCard = area.removeFromTop (kPedalH);
-    area.removeFromTop (kGap);
-    ampCard = area.removeFromTop (kAmpH);
-    area.removeFromTop (kGap);
     recordCard = area.removeFromTop (kRecordH);
 
     if (showUpdateSection)
@@ -487,6 +490,10 @@ void HushRigEditor::resized()
         area.removeFromTop (kGap);
         updateCard = area.removeFromTop (kUpdateH);
     }
+
+    pedalCard = right.removeFromTop (kPedalH);
+    right.removeFromTop (kGap);
+    ampCard = right.removeFromTop (kAmpH);
 
     // Medidores
     auto m = meterCard.reduced (16, 12);
