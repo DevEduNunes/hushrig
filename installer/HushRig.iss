@@ -30,7 +30,7 @@ PrivilegesRequired=admin
 WizardStyle=modern
 LicenseFile=..\LICENSE
 UninstallDisplayName=HushRig
-SetupIconFile=..ssets\hushrig.ico
+SetupIconFile=..\assets\hushrig.ico
 UninstallDisplayIcon={app}\HushRig.exe
 
 [Languages]
