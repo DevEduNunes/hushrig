@@ -16,7 +16,28 @@ FetchContent_Declare(Catch2
     GIT_REPOSITORY https://github.com/catchorg/Catch2.git
     GIT_TAG v3.7.1
     GIT_SHALLOW ON)
-FetchContent_MakeAvailable(JUCE Catch2)
+# NeuralAmpModelerCore (MIT): baixado so os fontes (o CMake deles e feito para app proprio,
+# entao criamos a biblioteca `nam_core` aqui). Eigen vem como submodulo.
+FetchContent_Declare(NAMCore
+    GIT_REPOSITORY https://github.com/sdatkinson/NeuralAmpModelerCore.git
+    GIT_TAG 0b3d3c97b0859a3a8c92a8628c4dd89a25eb5842
+    GIT_SUBMODULES "Dependencies/eigen"
+    GIT_SUBMODULES_RECURSE OFF
+    SOURCE_SUBDIR nao-existe)
+FetchContent_MakeAvailable(JUCE Catch2 NAMCore)
+
+file(GLOB NAM_CORE_SOURCES CONFIGURE_DEPENDS
+    "${namcore_SOURCE_DIR}/NAM/*.cpp"
+    "${namcore_SOURCE_DIR}/NAM/*/*.cpp")
+add_library(nam_core STATIC ${NAM_CORE_SOURCES})
+target_include_directories(nam_core PUBLIC "${namcore_SOURCE_DIR}")
+target_include_directories(nam_core SYSTEM PUBLIC
+    "${namcore_SOURCE_DIR}/Dependencies/eigen"
+    "${namcore_SOURCE_DIR}/Dependencies/nlohmann")
+target_compile_features(nam_core PUBLIC cxx_std_20)
+target_compile_definitions(nam_core PUBLIC NAM_ENABLE_A2_FAST
+    $<$<PLATFORM_ID:Windows>:NOMINMAX WIN32_LEAN_AND_MEAN>)
+target_compile_options(nam_core PRIVATE $<IF:$<CXX_COMPILER_ID:MSVC>,/w,-w>)
 
 # --- Plugin (Standalone + VST3) -------------------------------------------
 juce_add_plugin(HushRig
@@ -40,6 +61,8 @@ target_sources(HushRig PRIVATE
     src/PluginEditor.h
     src/DeviceInfo.cpp
     src/DeviceInfo.h
+    src/amp/NamAmp.cpp
+    src/amp/NamAmp.h
     src/PresetManager.cpp
     src/PresetManager.h
     src/ui/HushLookAndFeel.h
@@ -66,6 +89,7 @@ target_compile_definitions(HushRig PUBLIC
 target_link_libraries(HushRig
     PRIVATE
         juce::juce_audio_utils
+        nam_core
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
@@ -101,8 +125,10 @@ enable_testing()
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(Catch)
 
-add_executable(hushrig_tests tests/NoiseGateTests.cpp tests/VersionCompareTests.cpp tests/Sha256Tests.cpp tests/PedalTests.cpp tests/ChainOrderTests.cpp)
+add_executable(hushrig_tests tests/NoiseGateTests.cpp tests/VersionCompareTests.cpp tests/Sha256Tests.cpp tests/PedalTests.cpp tests/ChainOrderTests.cpp
+    tests/NamAmpTests.cpp src/amp/NamAmp.cpp)
 target_compile_options(hushrig_tests PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
 target_include_directories(hushrig_tests PRIVATE src)
-target_link_libraries(hushrig_tests PRIVATE Catch2::Catch2WithMain)
+target_compile_definitions(hushrig_tests PRIVATE HUSHRIG_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/data")
+target_link_libraries(hushrig_tests PRIVATE Catch2::Catch2WithMain nam_core)
 catch_discover_tests(hushrig_tests)
