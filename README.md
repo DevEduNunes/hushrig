@@ -104,7 +104,7 @@ O software ajuda, mas confira também a origem:
 
 ## 🔄 Atualizações
 
-No app standalone, clique em **Procurar atualizações**. Se houver uma versão nova, aparece o botão **Baixar e instalar**: o app baixa o instalador da release, confere o SHA-256 e reinicia já atualizado.
+No app standalone, toda vez que você abre o HushRig ele procura uma versão nova no GitHub. Se houver, aparece um ícone de download com o número da versão na barra de título: clique nele e o app baixa o instalador da release, confere o SHA-256 e reinicia já atualizado.
 
 ## 🗺️ Roadmap
 
