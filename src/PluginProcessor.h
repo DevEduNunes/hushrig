@@ -54,6 +54,8 @@ public:
 
     std::atomic<bool> ampLoaded { false };
     std::atomic<bool> ampRateMismatch { false };
+    std::atomic<float> ampNormDb { 0.0f };       // ganho de normalizacao do modelo atual (dB)
+    std::atomic<bool> ampHasLoudness { false };
     std::atomic<float> ampCpuLoad { 0.0f }; // tempo de processamento / tempo do buffer (0..1+), suavizado
 
     juce::AudioProcessorValueTreeState apvts;
@@ -75,6 +77,7 @@ private:
     hushrig::NoiseGate gate;
     hushrig::Overdrive overdrive;
     hushrig::Eq3 eq;
+    hushrig::Eq3 ampTone; // tom do amp (graves/medios/agudos), depois do modelo
     hushrig::Chorus chorus;
     hushrig::Delay delay;
     hushrig::Reverb reverb;
@@ -103,7 +106,7 @@ private:
         std::atomic<float> *chOn, *chRate, *chDepth, *chMix;
         std::atomic<float> *dlOn, *dlTime, *dlFeedback, *dlMix, *dlTone;
         std::atomic<float> *rvOn, *rvRoom, *rvDamp, *rvMix;
-        std::atomic<float> *ampOn, *ampIn, *ampOut;
+        std::atomic<float> *ampOn, *ampIn, *ampOut, *ampBass, *ampMid, *ampTreble, *ampNorm;
     } pedals {};
 
     std::atomic<float>* inputGainDb = nullptr;

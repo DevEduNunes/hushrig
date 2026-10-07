@@ -28,7 +28,7 @@ O HushRig ataca os dois: um **noise gate de latência zero** feito para guitarra
 - **Medidor de latência**: mostra em ms a latência real reportada pelo driver (entrada, saída, buffer, CPU) com dicas para reduzir
 - **Medidores de nível** de entrada e saída, com marcador do threshold e indicador de gate aberto/fechado
 - **Pedais** de overdrive, EQ, chorus, delay e reverb, com ordem ajustável (arraste) e **presets** (de fábrica e seus)
-- **Amp sim** com modelos `.nam` do [Neural Amp Modeler](https://www.neuralampmodeler.com/): 0 ms de latência adicionada e medidor de CPU do amp
+- **Amp sim** com modelos `.nam` do [Neural Amp Modeler](https://www.neuralampmodeler.com/): 0 ms de latência adicionada, controles de ganho, graves/médios/agudos e volume, normalização de volume entre modelos e medidor de CPU
 - **Noise gate** com threshold, hold e release — sem lookahead, ou seja, **zero latência** adicionada
 - **Gravação em WAV** (24 bits, áudio já processado) com um clique, salva em Documentos\HushRig
 - **Tema escuro** (preto e roxo) com knobs rotativos

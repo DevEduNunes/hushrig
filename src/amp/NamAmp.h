@@ -40,6 +40,9 @@ public:
     bool sampleRateMismatch() const;
     bool hasLoudness() const;
     double loudnessDb() const;
+
+    /** Ganho (dB) que leva o modelo ao volume de referencia (-18 dB). 0 se o modelo nao informa loudness. */
+    double normalizationGainDb (double targetLoudnessDb = -18.0) const;
     int latencySamples() const { return 0; }
 
 private:

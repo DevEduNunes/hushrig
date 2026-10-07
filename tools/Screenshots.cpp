@@ -57,6 +57,8 @@ int main (int argc, char* argv[])
         juce::String error;
         if (processor.loadAmpModel (juce::File (HUSHRIG_SAMPLE_MODEL), error))
             setParam (processor, "ampOn", 1.0f);
+        setParam (processor, "ampBass", 2.0f);
+        setParam (processor, "ampTreble", 1.5f);
     }
 
     // Valores de exemplo para a tela: um dispositivo ASIO típico e um sinal tocando.

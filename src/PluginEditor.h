@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "PluginProcessor.h"
+#include "ui/AmpPanel.h"
 #include "ui/HushLookAndFeel.h"
 #include "ui/LevelMeter.h"
 #include "ui/PedalBoard.h"
@@ -71,6 +72,7 @@ private:
 
     // Pedais e presets
     PedalBoard pedalBoard;
+    AmpPanel ampPanel;
 
     // Gravação em WAV
     juce::TextButton recordButton, folderButton;
@@ -85,7 +87,7 @@ private:
     Updater::ReleaseInfo pendingRelease;
 
     // Áreas calculadas em resized()
-    juce::Rectangle<int> headerArea, latencyCard, meterCard, knobCard, pedalCard, recordCard, updateCard;
+    juce::Rectangle<int> headerArea, latencyCard, meterCard, knobCard, pedalCard, ampCard, recordCard, updateCard;
     juce::Rectangle<int> inputRow, outputRow, knobInner;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (HushRigEditor)

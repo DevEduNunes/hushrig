@@ -1,3 +1,4 @@
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <chrono>
@@ -103,4 +104,18 @@ TEST_CASE ("NamAmp e deterministico apos prepare")
     a.process (x.data(), 640);
     b.process (y.data(), 640);
     REQUIRE (x == y);
+}
+
+TEST_CASE ("NamAmp calcula o ganho de normalizacao a partir do loudness do modelo")
+{
+    hushrig::NamAmp amp;
+    REQUIRE (amp.normalizationGainDb() == 0.0); // sem modelo
+
+    amp.prepare (48000.0, 128);
+    std::string error;
+    REQUIRE (amp.load (kDir + "/wavenet.nam", error));
+
+    REQUIRE (amp.hasLoudness());
+    REQUIRE (amp.normalizationGainDb() == Catch::Approx (-18.0 - amp.loudnessDb()));
+    REQUIRE (amp.normalizationGainDb (-20.0) == Catch::Approx (-20.0 - amp.loudnessDb()));
 }
