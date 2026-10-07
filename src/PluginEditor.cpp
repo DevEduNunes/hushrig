@@ -25,6 +25,7 @@ constexpr int kMinWidth = kPad * 2 + kMinColW;
 constexpr int kMinHeight = 420;
 constexpr int kDragStartPx = 6;
 constexpr int kHeaderH = 56;
+constexpr int kFooterH = 28;   // faixa do copyright, na base da janela
 constexpr int kLatencyH = 118;
 constexpr int kMeterH = 108;
 constexpr int kKnobH = 196;
@@ -104,7 +105,7 @@ HushRigEditor::HushRigEditor (HushRigProcessor& p)
     setResizable (true, ! showUpdateSection); // no standalone a própria janela já tem bordas redimensionáveis
     setResizeLimits (kMinWidth, kMinHeight, 4000, 3200);
 
-    const int height = kPad * 2 + kHeaderH + kGap + flowCards (cardOrder, kWidth - kPad * 2).contentHeight;
+    const int height = kPad * 2 + kHeaderH + kGap + flowCards (cardOrder, kWidth - kPad * 2).contentHeight + kFooterH;
     setSize (kWidth, height);
 
     updateLatencyView();
@@ -425,6 +426,12 @@ void HushRigEditor::tick (bool refreshStats)
 void HushRigEditor::paint (juce::Graphics& g)
 {
     g.fillAll (background);
+
+    // --- Rodapé ------------------------------------------------------------
+    g.setColour (hush::colours::text);
+    g.setFont (juce::FontOptions (12.0f));
+    g.drawText (juce::String (juce::CharPointer_UTF8 ("\xc2\xa9 ")) + juce::String (juce::Time::getCurrentTime().getYear()) + " DevEduNunes",
+                getLocalBounds().removeFromBottom (kFooterH), juce::Justification::centred);
 
     // --- Cabeçalho -------------------------------------------------------
     g.setColour (accentBright);
