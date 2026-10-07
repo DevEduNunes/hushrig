@@ -35,6 +35,7 @@ O HushRig ataca os dois: um **noise gate de latência zero** feito para guitarra
 - **Ganho de entrada e de saída** com transição suave (sem cliques)
 - **Standalone e VST3** com o mesmo código
 - **Entrada mono** espelhada nos dois canais (guitarra em estéreo no fone)
+- **Janela redimensionável e botão de maximizar**: os cards se reorganizam em 1, 2 ou 3 colunas conforme o tamanho (monitor horizontal ou vertical) e podem ser arrastados para outra posição; a ordem fica salva
 - **Atualização dentro do app**: ao abrir, procura novas versões no GitHub; se houver, aparece um ícone de download na barra de título e um clique baixa e instala
 - **Instalador completo** que já instala o driver ASIO [FlexASIO](https://github.com/dechamps/FlexASIO)
 

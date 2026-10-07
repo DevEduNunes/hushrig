@@ -7,6 +7,7 @@
 
 #include "PluginProcessor.h"
 #include "ui/AmpPanel.h"
+#include "ui/CardLayout.h"
 #include "ui/HushLookAndFeel.h"
 #include "ui/LevelMeter.h"
 #include "ui/PedalBoard.h"
@@ -22,6 +23,10 @@ public:
 
     void paint (juce::Graphics&) override;
     void resized() override;
+    void paintOverChildren (juce::Graphics&) override;
+    void mouseDown (const juce::MouseEvent&) override;
+    void mouseDrag (const juce::MouseEvent&) override;
+    void mouseUp (const juce::MouseEvent&) override;
     void parentHierarchyChanged() override;
 
     /** Atualiza medidores (e, se pedido, a latência). Chamado pelo timer; público para a ferramenta de screenshots. */
@@ -56,6 +61,9 @@ private:
     void updateRecordView();
     void updateLatencyView();
     bool isGateBypassed() const;
+    int cardAt (juce::Point<int> p) const;
+    void updateDropTarget (juce::Point<int> p);
+    void applyCardDrop();
 
     HushRigProcessor& processor;
     const bool showUpdateSection;
@@ -93,6 +101,14 @@ private:
     // Áreas calculadas em resized()
     juce::Rectangle<int> headerArea, latencyCard, meterCard, knobCard, pedalCard, ampCard, recordCard;
     juce::Rectangle<int> inputRow, outputRow, knobInner;
+
+    // Ordem dos cards (arrastáveis) e estado do arrasto
+    std::vector<int> cardOrder = hushrig::CardLayout::defaultOrder();
+    std::array<juce::Rectangle<int>, hushrig::kNumCards> cardRects;
+    int dragCard = -1;        // card sendo arrastado (-1 = nenhum)
+    bool isDraggingCard = false;
+    int dropTarget = -1;      // card ao lado do qual o arrastado vai cair
+    bool dropBefore = true;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (HushRigEditor)
 };
