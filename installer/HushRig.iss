@@ -30,6 +30,8 @@ PrivilegesRequired=admin
 WizardStyle=modern
 LicenseFile=..\LICENSE
 UninstallDisplayName=HushRig
+SetupIconFile=..ssets\hushrig.ico
+UninstallDisplayIcon={app}\HushRig.exe
 
 [Languages]
 Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"

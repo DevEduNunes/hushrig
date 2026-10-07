@@ -29,6 +29,8 @@ juce_add_plugin(HushRig
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     VST3_CATEGORIES Fx
+    ICON_BIG "${CMAKE_CURRENT_SOURCE_DIR}/assets/icon.png"
+    ICON_SMALL "${CMAKE_CURRENT_SOURCE_DIR}/assets/icon.png"
     COPY_PLUGIN_AFTER_BUILD FALSE)
 
 target_sources(HushRig PRIVATE
