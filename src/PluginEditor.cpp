@@ -19,6 +19,7 @@ constexpr int kHeaderH = 56;
 constexpr int kLatencyH = 118;
 constexpr int kMeterH = 108;
 constexpr int kKnobH = 196;
+constexpr int kRecordH = 84;
 constexpr int kUpdateH = 124;
 constexpr int kGap = 12;
 constexpr int kLabelW = 78;
@@ -62,10 +63,12 @@ HushRigEditor::HushRigEditor (HushRigProcessor& p)
     addAndMakeVisible (inputMeter);
     addAndMakeVisible (outputMeter);
 
+    setupRecordSection();
+
     if (showUpdateSection)
         setupUpdateSection();
 
-    const int height = kPad * 2 + kHeaderH + kGap * 3 + kLatencyH + kMeterH + kKnobH
+    const int height = kPad * 2 + kHeaderH + kGap * 4 + kLatencyH + kMeterH + kKnobH + kRecordH
                        + (showUpdateSection ? kGap + kUpdateH : 0);
     setSize (kWidth, height);
 
@@ -77,6 +80,8 @@ HushRigEditor::HushRigEditor (HushRigProcessor& p)
 HushRigEditor::~HushRigEditor()
 {
     stopTimer();
+
+    processor.recorder.stop();
 
     processor.updater.onCheckDone = nullptr;
     processor.updater.onProgress = nullptr;
@@ -107,6 +112,87 @@ void HushRigEditor::addKnob (Knob& knob, const juce::String& caption, const char
     addAndMakeVisible (knob.slider);
 
     knob.attachment = std::make_unique<SliderAttachment> (processor.apvts, paramId, knob.slider);
+}
+
+void HushRigEditor::setupRecordSection()
+{
+    recordButton.setButtonText ("Gravar");
+    recordButton.onClick = [this] { toggleRecording(); };
+    addAndMakeVisible (recordButton);
+
+    folderButton.setButtonText ("Abrir pasta");
+    folderButton.onClick = [this]
+    {
+        auto folder = hushrig::Recorder::recordingsFolder();
+        folder.createDirectory();
+        folder.startAsProcess();
+    };
+    addAndMakeVisible (folderButton);
+
+    recordLabel.setJustificationType (juce::Justification::centredLeft);
+    recordLabel.setMinimumHorizontalScale (1.0f);
+    addAndMakeVisible (recordLabel);
+
+    updateRecordView();
+}
+
+void HushRigEditor::toggleRecording()
+{
+    if (processor.recorder.isRecording())
+    {
+        processor.recorder.stop();
+    }
+    else
+    {
+        juce::String error;
+
+        if (! processor.recorder.start (processor.sampleRateHz.load(), error))
+        {
+            recordLabel.setColour (juce::Label::textColourId, bad);
+            recordLabel.setText (error, juce::dontSendNotification);
+            return;
+        }
+    }
+
+    updateRecordView();
+}
+
+void HushRigEditor::updateRecordView()
+{
+    const bool recording = processor.recorder.isRecording();
+
+    if (recording)
+    {
+        const double sr = std::max (1.0, processor.sampleRateHz.load());
+        const int secs = static_cast<int> (static_cast<double> (processor.recorder.getSamplesWritten()) / sr);
+
+        recordButton.setButtonText ("Parar");
+        recordButton.setColour (juce::TextButton::buttonColourId, bad.darker (0.3f));
+        recordLabel.setColour (juce::Label::textColourId, bad);
+        recordLabel.setText (pt ("● Gravando  ") + juce::String::formatted ("%02d:%02d", secs / 60, secs % 60)
+                                 + "  -  " + processor.recorder.getFile().getFileName(),
+                             juce::dontSendNotification);
+    }
+    else
+    {
+        recordButton.setButtonText ("Gravar");
+        recordButton.removeColour (juce::TextButton::buttonColourId);
+
+        if (wasRecording) // acabou de parar
+        {
+            recordLabel.setColour (juce::Label::textColourId, good);
+            recordLabel.setText (pt ("Salvo em ") + processor.recorder.getFile().getFullPathName(),
+                                 juce::dontSendNotification);
+        }
+        else if (recordLabel.getText().isEmpty())
+        {
+            recordLabel.setColour (juce::Label::textColourId, textDim);
+            recordLabel.setText (pt ("Grava o áudio já processado (WAV, 24 bits) em Documentos\\HushRig."),
+                                 juce::dontSendNotification);
+        }
+    }
+
+    wasRecording = recording;
 }
 
 void HushRigEditor::setupUpdateSection()
@@ -252,6 +338,7 @@ void HushRigEditor::tick (bool refreshStats)
 
     shownGateOpen = processor.gateOpen.load (std::memory_order_relaxed);
     repaint (meterCard);
+    updateRecordView();
 
     if (refreshStats || ++tickCount % 15 == 0)
     {
@@ -350,6 +437,10 @@ void HushRigEditor::paint (juce::Graphics& g)
             g.fillRect (knobInner.getX() + colW * col, knobInner.getY(), 1, knobInner.getHeight());
     }
 
+    // --- Gravação ----------------------------------------------------------
+    drawCard (g, recordCard);
+    drawSectionTitle (g, pt ("GRAVAÇÃO"), recordCard.reduced (16, 12).removeFromTop (16));
+
     // --- Atualizações ------------------------------------------------------
     if (showUpdateSection)
     {
@@ -369,6 +460,8 @@ void HushRigEditor::resized()
     meterCard = area.removeFromTop (kMeterH);
     area.removeFromTop (kGap);
     knobCard = area.removeFromTop (kKnobH);
+    area.removeFromTop (kGap);
+    recordCard = area.removeFromTop (kRecordH);
 
     if (showUpdateSection)
     {
@@ -398,6 +491,15 @@ void HushRigEditor::resized()
     }
 
     bypassButton.setBounds (juce::Rectangle<int> (knobInner.getX() + colW * 4 - 92, knobInner.getY() - 1, 90, 20));
+
+    auto r = recordCard.reduced (16, 12);
+    r.removeFromTop (22);
+    auto rbuttons = r.removeFromTop (32);
+    recordButton.setBounds (rbuttons.removeFromLeft (150));
+    rbuttons.removeFromLeft (8);
+    folderButton.setBounds (rbuttons.removeFromLeft (120));
+    rbuttons.removeFromLeft (14);
+    recordLabel.setBounds (rbuttons);
 
     if (! showUpdateSection)
         return;

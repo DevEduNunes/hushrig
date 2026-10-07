@@ -43,6 +43,9 @@ private:
 
     void addKnob (Knob& knob, const juce::String& caption, const char* paramId, const juce::String& suffix);
     void setupUpdateSection();
+    void setupRecordSection();
+    void toggleRecording();
+    void updateRecordView();
     void setStatus (const juce::String& text, bool isError = false);
     void updateLatencyView();
     bool isGateBypassed() const;
@@ -65,6 +68,11 @@ private:
 
     LatencyView latency;
 
+    // Gravação em WAV
+    juce::TextButton recordButton, folderButton;
+    juce::Label recordLabel;
+    bool wasRecording = false;
+
     // Atualização (apenas standalone)
     juce::Label statusLabel;
     juce::TextButton checkButton, installButton;
@@ -73,7 +81,7 @@ private:
     Updater::ReleaseInfo pendingRelease;
 
     // Áreas calculadas em resized()
-    juce::Rectangle<int> headerArea, latencyCard, meterCard, knobCard, updateCard;
+    juce::Rectangle<int> headerArea, latencyCard, meterCard, knobCard, recordCard, updateCard;
     juce::Rectangle<int> inputRow, outputRow, knobInner;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (HushRigEditor)

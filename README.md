@@ -28,6 +28,7 @@ O HushRig ataca os dois: um **noise gate de latência zero** feito para guitarra
 - **Medidor de latência**: mostra em ms a latência real reportada pelo driver (entrada, saída, buffer, CPU) com dicas para reduzir
 - **Medidores de nível** de entrada e saída, com marcador do threshold e indicador de gate aberto/fechado
 - **Noise gate** com threshold, hold e release — sem lookahead, ou seja, **zero latência** adicionada
+- **Gravação em WAV** (24 bits, áudio já processado) com um clique, salva em DocumentosHushRig
 - **Tema escuro** (preto e roxo) com knobs rotativos
 - **Ganho de entrada e de saída** com transição suave (sem cliques)
 - **Standalone e VST3** com o mesmo código
@@ -93,7 +94,7 @@ No app standalone, clique em **Procurar atualizações**. Se houver uma versão 
 - [x] Medidor de latência e medidores de nível
 - [ ] Pedais: overdrive, delay, reverb, chorus e EQ
 - [ ] Cadeia de pedais reordenável e presets
-- [ ] Gravação em WAV
+- [x] Gravação em WAV
 - [ ] Amp sim com modelos [Neural Amp Modeler](https://www.neuralampmodeler.com/)
 - [ ] Interface própria com pedais visuais
 

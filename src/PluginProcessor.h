@@ -2,6 +2,7 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
+#include "Recorder.h"
 #include "dsp/NoiseGate.h"
 #include "update/Updater.h"
 
@@ -35,6 +36,7 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState apvts;
+    hushrig::Recorder recorder; // gravação em WAV (acionada pela interface)
     Updater updater; // vive com o processador; o editor só liga/desliga os callbacks
 
     // Telemetria para a interface (escrita na thread de áudio, lida pela UI).

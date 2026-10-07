@@ -73,6 +73,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout HushRigProcessor::createLayo
 
 void HushRigProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
+    recorder.stop(); // a taxa de amostragem pode ter mudado
     sampleRateHz.store (sampleRate);
     blockSize.store (samplesPerBlock);
     gate.prepare (sampleRate);
@@ -126,6 +127,7 @@ void HushRigProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     lastOutputGain = outGain;
 
     raisePeak (outputPeak, maxMagnitude (buffer));
+    recorder.write (buffer);
     gateOpen.store (gateActive ? gate.isOpen() : true, std::memory_order_relaxed);
 }
 
