@@ -113,7 +113,7 @@ private:
             { "CHORUS",    "chOn", { { "RATE", "chRate" }, { "DEPTH", "chDepth" }, { "MIX", "chMix" } } },
             { "DELAY",     "dlOn", { { "TIME", "dlTime" }, { "FDBK", "dlFeedback" }, { "MIX", "dlMix" }, { "TONE", "dlTone" } } },
             { "REVERB",    "rvOn", { { "ROOM", "rvRoom" }, { "DAMP", "rvDamp" }, { "MIX", "rvMix" } } },
-            { "AMP (NAM)", "ampOn", { { "INPUT", "ampIn" }, { "OUTPUT", "ampOut" } }, true },
+            { "AMP (NAM)", "ampOn", {}, true }, // os knobs ficam no AmpPanel
         } };
         return s;
     }
@@ -160,7 +160,7 @@ private:
 
                 status.setJustificationType (juce::Justification::topLeft);
                 status.setMinimumHorizontalScale (1.0f);
-                status.setFont (juce::Font (juce::FontOptions (10.0f)));
+                status.setFont (juce::Font (juce::FontOptions (11.0f)));
                 status.setInterceptsMouseClicks (false, false);
                 addAndMakeVisible (status);
             }
@@ -216,10 +216,10 @@ private:
 
             if (spec.amp)
             {
-                area.removeFromTop (kKnobRowH + 2);
-                loadButton.setBounds (area.removeFromTop (24));
-                area.removeFromTop (4);
-                status.setBounds (area.reduced (2, 0));
+                area.removeFromTop (6);
+                loadButton.setBounds (area.removeFromTop (28).reduced (2, 0));
+                area.removeFromTop (8);
+                status.setBounds (area.reduced (4, 0));
             }
         }
 

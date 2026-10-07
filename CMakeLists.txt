@@ -71,6 +71,7 @@ target_sources(HushRig PRIVATE
     src/amp/NamAmp.h
     src/PresetManager.cpp
     src/PresetManager.h
+    src/ui/AmpPanel.h
     src/ui/HushLookAndFeel.h
     src/ui/LevelMeter.h
     src/ui/PedalBoard.h

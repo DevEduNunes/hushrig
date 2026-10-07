@@ -20,6 +20,7 @@ constexpr int kLatencyH = 118;
 constexpr int kMeterH = 108;
 constexpr int kKnobH = 196;
 constexpr int kPedalH = PedalBoard::kHeight + 24;
+constexpr int kAmpH = AmpPanel::kHeight + 36;
 constexpr int kRecordH = 84;
 constexpr int kUpdateH = 124;
 constexpr int kGap = 12;
@@ -48,7 +49,8 @@ HushRigEditor::HushRigEditor (HushRigProcessor& p)
     : AudioProcessorEditor (&p),
       processor (p),
       showUpdateSection (p.wrapperType == juce::AudioProcessor::wrapperType_Standalone),
-      pedalBoard (p)
+      pedalBoard (p),
+      ampPanel (p)
 {
     setLookAndFeel (&lnf);
 
@@ -63,6 +65,7 @@ HushRigEditor::HushRigEditor (HushRigProcessor& p)
     bypassAttachment = std::make_unique<ButtonAttachment> (processor.apvts, "gateBypass", bypassButton);
 
     addAndMakeVisible (pedalBoard);
+    addAndMakeVisible (ampPanel);
     addAndMakeVisible (inputMeter);
     addAndMakeVisible (outputMeter);
 
@@ -71,7 +74,7 @@ HushRigEditor::HushRigEditor (HushRigProcessor& p)
     if (showUpdateSection)
         setupUpdateSection();
 
-    const int height = kPad * 2 + kHeaderH + kGap * 5 + kLatencyH + kMeterH + kKnobH + kPedalH + kRecordH
+    const int height = kPad * 2 + kHeaderH + kGap * 6 + kLatencyH + kMeterH + kKnobH + kPedalH + kAmpH + kRecordH
                        + (showUpdateSection ? kGap + kUpdateH : 0);
     setSize (kWidth, height);
 
@@ -343,6 +346,7 @@ void HushRigEditor::tick (bool refreshStats)
     repaint (meterCard);
     updateRecordView();
     pedalBoard.refresh();
+    ampPanel.refresh();
 
     if (refreshStats || ++tickCount % 15 == 0)
     {
@@ -444,6 +448,10 @@ void HushRigEditor::paint (juce::Graphics& g)
     // --- Pedais ------------------------------------------------------------
     drawCard (g, pedalCard);
 
+    // --- Amp ---------------------------------------------------------------
+    drawCard (g, ampCard);
+    drawSectionTitle (g, pt ("AMP · GANHO E TOM"), ampCard.reduced (16, 12).removeFromTop (16));
+
     // --- Gravação ----------------------------------------------------------
     drawCard (g, recordCard);
     drawSectionTitle (g, pt ("GRAVAÇÃO"), recordCard.reduced (16, 12).removeFromTop (16));
@@ -470,6 +478,8 @@ void HushRigEditor::resized()
     area.removeFromTop (kGap);
     pedalCard = area.removeFromTop (kPedalH);
     area.removeFromTop (kGap);
+    ampCard = area.removeFromTop (kAmpH);
+    area.removeFromTop (kGap);
     recordCard = area.removeFromTop (kRecordH);
 
     if (showUpdateSection)
@@ -487,6 +497,7 @@ void HushRigEditor::resized()
     outputMeter.setBounds (outputRow.withTrimmedLeft (kLabelW).withTrimmedRight (kReadoutW + 6));
 
     pedalBoard.setBounds (pedalCard.reduced (16, 12));
+    ampPanel.setBounds (ampCard.reduced (16, 12).withTrimmedTop (22));
 
     // Knobs
     knobInner = knobCard.reduced (16, 14);

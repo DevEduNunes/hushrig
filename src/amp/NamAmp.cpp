@@ -131,4 +131,10 @@ bool NamAmp::sampleRateMismatch() const
 
 bool NamAmp::hasLoudness() const { return impl->model != nullptr && impl->model->HasLoudness(); }
 double NamAmp::loudnessDb() const { return hasLoudness() ? impl->model->GetLoudness() : 0.0; }
+
+double NamAmp::normalizationGainDb (double targetLoudnessDb) const
+{
+    // Limita para que um metadado absurdo nao gere um ganho perigoso.
+    return hasLoudness() ? std::clamp (targetLoudnessDb - loudnessDb(), -24.0, 24.0) : 0.0;
+}
 } // namespace hushrig

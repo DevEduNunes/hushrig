@@ -49,7 +49,8 @@ HushRigProcessor::HushRigProcessor()
                p ("chOn"), p ("chRate"), p ("chDepth"), p ("chMix"),
                p ("dlOn"), p ("dlTime"), p ("dlFeedback"), p ("dlMix"), p ("dlTone"),
                p ("rvOn"), p ("rvRoom"), p ("rvDamp"), p ("rvMix"),
-               p ("ampOn"), p ("ampIn"), p ("ampOut") };
+               p ("ampOn"), p ("ampIn"), p ("ampOut"),
+               p ("ampBass"), p ("ampMid"), p ("ampTreble"), p ("ampNorm") };
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout HushRigProcessor::createLayout()
@@ -117,6 +118,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout HushRigProcessor::createLayo
     addBool ("ampOn", "Amp On");
     addFloat ("ampIn", "Amp Input", Range (-18.0f, 18.0f, 0.1f), 0.0f, "dB");
     addFloat ("ampOut", "Amp Output", Range (-30.0f, 12.0f, 0.1f), 0.0f, "dB");
+    addFloat ("ampBass", "Amp Bass", Range (-12.0f, 12.0f, 0.1f), 0.0f, "dB");
+    addFloat ("ampMid", "Amp Mid", Range (-12.0f, 12.0f, 0.1f), 0.0f, "dB");
+    addFloat ("ampTreble", "Amp Treble", Range (-12.0f, 12.0f, 0.1f), 0.0f, "dB");
+    layout.add (std::make_unique<juce::AudioParameterBool> (juce::ParameterID { "ampNorm", 1 }, "Amp Normalize", true));
 
     return layout;
 }
@@ -135,6 +140,7 @@ void HushRigProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     gate.prepare (sampleRate);
     overdrive.prepare (sampleRate, 2);
     eq.prepare (sampleRate, 2);
+    ampTone.prepare (sampleRate, 2);
     chorus.prepare (sampleRate, 2);
     delay.prepare (sampleRate, 2);
     reverb.prepare (sampleRate, 2);
@@ -292,7 +298,8 @@ void HushRigProcessor::processAmp (float* const* data, int numChannels, int numS
     }
 
     const float inGain  = juce::Decibels::decibelsToGain (pedals.ampIn->load());
-    const float outGain = juce::Decibels::decibelsToGain (pedals.ampOut->load());
+    const float normDb  = pedals.ampNorm->load() >= 0.5f ? static_cast<float> (activeAmp->normalizationGainDb()) : 0.0f;
+    const float outGain = juce::Decibels::decibelsToGain (pedals.ampOut->load() + normDb);
     const float inStep  = (inGain - lastAmpIn) / static_cast<float> (numSamples);
     const float outStep = (outGain - lastAmpOut) / static_cast<float> (numSamples);
 
@@ -301,6 +308,15 @@ void HushRigProcessor::processAmp (float* const* data, int numChannels, int numS
         mono[i] *= g;
 
     activeAmp->process (mono, numSamples);
+
+    // Tom: so gasta CPU se algum controle saiu do zero.
+    const float bass = pedals.ampBass->load(), mid = pedals.ampMid->load(), treble = pedals.ampTreble->load();
+    if (bass != 0.0f || mid != 0.0f || treble != 0.0f)
+    {
+        ampTone.setParams ({ bass, mid, treble });
+        float* const monoChannel[1] = { mono };
+        ampTone.process (monoChannel, 1, numSamples);
+    }
 
     g = lastAmpOut;
     for (int i = 0; i < numSamples; ++i, g += outStep)
@@ -341,6 +357,8 @@ bool HushRigProcessor::loadAmpModel (const juce::File& file, juce::String& error
     }
 
     ampRateMismatch.store (amp->sampleRateMismatch());
+    ampHasLoudness.store (amp->hasLoudness());
+    ampNormDb.store (static_cast<float> (amp->normalizationGainDb()));
     ampLoaded.store (true);
     ampCpuLoad.store (0.0f);
     apvts.state.setProperty ("ampModel", file.getFullPathName(), nullptr);
