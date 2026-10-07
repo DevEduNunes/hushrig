@@ -17,14 +17,19 @@ FetchContent_Declare(Catch2
     GIT_TAG v3.7.1
     GIT_SHALLOW ON)
 # NeuralAmpModelerCore (MIT): baixado so os fontes (o CMake deles e feito para app proprio,
-# entao criamos a biblioteca `nam_core` aqui). Eigen vem como submodulo.
+# entao criamos a biblioteca `nam_core` aqui).
+# O Eigen e o mesmo commit que o NAM fixa como submodulo (bc3b398), mas vem do espelho oficial no
+# GitHub: o gitlab.com recusa clones sob carga e derrubou o CI ("unable to handle this request due to load").
 FetchContent_Declare(NAMCore
     GIT_REPOSITORY https://github.com/sdatkinson/NeuralAmpModelerCore.git
     GIT_TAG 0b3d3c97b0859a3a8c92a8628c4dd89a25eb5842
-    GIT_SUBMODULES "Dependencies/eigen"
-    GIT_SUBMODULES_RECURSE OFF
+    GIT_SUBMODULES "" # nenhum submodulo (Eigen abaixo; nlohmann/json ja vem versionado no repositorio)
     SOURCE_SUBDIR nao-existe)
-FetchContent_MakeAvailable(JUCE Catch2 NAMCore)
+FetchContent_Declare(EigenSrc
+    GIT_REPOSITORY https://github.com/eigen-mirror/eigen.git
+    GIT_TAG bc3b39870ecb690a623a3f49149a358b95c5781d
+    SOURCE_SUBDIR nao-existe)
+FetchContent_MakeAvailable(JUCE Catch2 NAMCore EigenSrc)
 
 file(GLOB NAM_CORE_SOURCES CONFIGURE_DEPENDS
     "${namcore_SOURCE_DIR}/NAM/*.cpp"
@@ -35,7 +40,7 @@ add_library(nam_core OBJECT ${NAM_CORE_SOURCES})
 set_target_properties(nam_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(nam_core PUBLIC "${namcore_SOURCE_DIR}")
 target_include_directories(nam_core SYSTEM PUBLIC
-    "${namcore_SOURCE_DIR}/Dependencies/eigen"
+    "${eigensrc_SOURCE_DIR}"
     "${namcore_SOURCE_DIR}/Dependencies/nlohmann")
 target_compile_features(nam_core PUBLIC cxx_std_20)
 target_compile_definitions(nam_core PUBLIC NAM_ENABLE_A2_FAST)

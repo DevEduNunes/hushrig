@@ -21,7 +21,7 @@ Toque direto no PC com baixa latência e sem chiado.
 Guitarra ligada direto no PC costuma dar dois problemas: **chiado** (captadores single coil, ganho alto, ruído da USB) e **delay** (drivers de áudio padrão do Windows com buffers grandes).
 O HushRig ataca os dois: um **noise gate de latência zero** feito para guitarra e um caminho de áudio pensado para rodar com **ASIO**.
 
-> ⚠️ Projeto em fase inicial. Hoje ele tem gate, ganhos, pedais e presets. O amp sim está no [roadmap](#-roadmap).
+> ⚠️ Projeto em desenvolvimento ativo (v0.2). Gate, pedais, presets e amp sim NAM já funcionam; a interface com pedais visuais está no [roadmap](#-roadmap).
 
 ## ✨ Recursos
 
@@ -75,6 +75,25 @@ O HushRig ataca os dois: um **noise gate de latência zero** feito para guitarra
 | **Gate Release** | Quão rápido o gate fecha |
 | **Output Gain** | Volume de saída |
 | **Gate bypass** | Desliga o gate |
+
+### Pedais e presets
+
+Ligue cada pedal no botão do canto do bloco. **Arraste o título** de um bloco para mudar a ordem da cadeia. O seletor **Presets** traz alguns de fábrica e guarda os seus (**Salvar**/**Excluir**), em `Documentos\HushRig\Presets`. Um preset guarda os pedais, a ordem e o modelo do amp; ganhos e gate ficam como você deixou.
+
+### Amp sim (modelos NAM)
+
+1. No bloco **AMP (NAM)**, clique em **Carregar modelo...** e escolha um arquivo `.nam` (ou um `.wav` de IR). Há muitos modelos gratuitos feitos pela comunidade do [Neural Amp Modeler](https://www.neuralampmodeler.com/).
+2. O bloco mostra quanto do tempo do buffer o modelo usa (**CPU**). Se ficar alto (laranja/vermelho) ou o som estalar, troque por um modelo mais leve ou aumente o buffer.
+3. No card **AMP · GANHO E TOM** ajuste:
+
+| Controle | O que faz |
+|---|---|
+| **Input** | Ganho antes do modelo (empurra o amp para mais ou menos distorção) |
+| **Bass / Mid / Treble** | Tom, aplicado depois do modelo (±12 dB) |
+| **Output** | Volume de saída do amp |
+| **Normalizar volume** | Iguala o volume entre modelos usando o loudness gravado no `.nam` |
+
+O amp **não adiciona latência**. Se o modelo foi treinado em uma taxa diferente da do dispositivo (por exemplo 48 kHz no modelo e 44,1 kHz no driver), o bloco avisa, porque o timbre muda: prefira rodar a 48 kHz.
 
 ### Dicas contra o chiado
 
