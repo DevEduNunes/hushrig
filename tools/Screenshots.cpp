@@ -82,19 +82,5 @@ int main (int argc, char* argv[])
 
     savePng (editor.createComponentSnapshot (editor.getLocalBounds(), true, 2.0f), outDir.getChildFile ("app-main.png"));
 
-    Updater::ReleaseInfo info;
-    info.version = "0.2.0";
-    info.assetName = "HushRig-Setup-0.2.0.exe";
-
-    if (processor.updater.onCheckDone)
-        processor.updater.onCheckDone (Updater::CheckResult::updateAvailable, info,
-                                       juce::String::fromUTF8 ("Nova versão disponível: 0.2.0"));
-
-    processor.inputPeak.store (0.22f);
-    processor.outputPeak.store (0.16f);
-    editor.tick (true);
-
-    savePng (editor.createComponentSnapshot (editor.getLocalBounds(), true, 2.0f), outDir.getChildFile ("app-update.png"));
-
     return 0;
 }
