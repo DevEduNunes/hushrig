@@ -38,7 +38,7 @@ std::vector<float> run (hushrig::Rig& rig, float amplitude, int numBlocks)
 }
 } // namespace
 
-TEST_CASE ("Rig: parametros por id sao limitados à faixa e ids desconhecidos sao recusados")
+TEST_CASE ("Rig: parametros por id sao limitados a faixa e ids desconhecidos sao recusados")
 {
     hushrig::RigState state;
     CHECK (state.setById ("outputGain", 99.0f));
