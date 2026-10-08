@@ -7,3 +7,6 @@ CMakeUserPresets.json
 *.wav
 installer/deps/
 dist/
+
+.pio/
+firmware/sdkconfig.esp32s3

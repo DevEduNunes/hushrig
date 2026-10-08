@@ -146,10 +146,10 @@ enable_testing()
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(Catch)
 
-add_executable(hushrig_tests tests/NoiseGateTests.cpp tests/VersionCompareTests.cpp tests/Sha256Tests.cpp tests/PedalTests.cpp tests/ChainOrderTests.cpp tests/CardLayoutTests.cpp
+add_executable(hushrig_tests tests/NoiseGateTests.cpp tests/VersionCompareTests.cpp tests/Sha256Tests.cpp tests/PedalTests.cpp tests/ChainOrderTests.cpp tests/CardLayoutTests.cpp tests/RigTests.cpp
     tests/NamAmpTests.cpp src/amp/NamAmp.cpp)
 target_compile_options(hushrig_tests PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
-target_include_directories(hushrig_tests PRIVATE src)
+target_include_directories(hushrig_tests PRIVATE src firmware/src)
 target_compile_definitions(hushrig_tests PRIVATE HUSHRIG_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/data")
 target_link_libraries(hushrig_tests PRIVATE Catch2::Catch2WithMain nam_core)
 catch_discover_tests(hushrig_tests)
