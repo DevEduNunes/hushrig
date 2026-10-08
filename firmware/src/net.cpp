@@ -13,9 +13,8 @@
 #include "esp_wifi.h"
 #include "esp_wifi_default.h"
 #include "protocol.h"
+#include "web_index.h"
 
-extern const uint8_t indexHtmlStart[] asm ("_binary_index_html_start");
-extern const uint8_t indexHtmlEnd[] asm ("_binary_index_html_end");
 
 namespace
 {
@@ -64,8 +63,7 @@ esp_err_t wsHandler (httpd_req_t* req)
 esp_err_t indexHandler (httpd_req_t* req)
 {
     httpd_resp_set_type (req, "text/html; charset=utf-8");
-    return httpd_resp_send (req, reinterpret_cast<const char*> (indexHtmlStart),
-                            static_cast<ssize_t> (indexHtmlEnd - indexHtmlStart - 1)); // -1: terminador nulo do embed
+    return httpd_resp_send (req, kIndexHtml, static_cast<ssize_t> (kIndexHtmlLen));
 }
 
 // Android testa "generate_204" para detectar portal cativo; responder 204 evita o aviso de "sem internet".

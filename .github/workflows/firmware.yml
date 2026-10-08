@@ -22,6 +22,8 @@ jobs:
           python-version: '3.12'
       - name: Tabela de parâmetros da página == Rig.h
         run: python firmware/tools/check_web_params.py
+      - name: Header da página (web_index.h) em dia
+        run: python firmware/tools/gen_web_header.py --check
       - name: Instala o PlatformIO
         run: pip install platformio
       - name: Compila o firmware (${{ matrix.env }})
