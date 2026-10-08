@@ -38,7 +38,7 @@ std::vector<float> run (hushrig::Rig& rig, float amplitude, int numBlocks)
 }
 } // namespace
 
-TEST_CASE ("Rig: parâmetros por id são limitados à faixa e ids desconhecidos são recusados")
+TEST_CASE ("Rig: parametros por id sao limitados à faixa e ids desconhecidos sao recusados")
 {
     hushrig::RigState state;
     CHECK (state.setById ("outputGain", 99.0f));
@@ -51,7 +51,7 @@ TEST_CASE ("Rig: parâmetros por id são limitados à faixa e ids desconhecidos 
     CHECK (state.get (hushrig::pOdDrive) == 12.0f);
 }
 
-TEST_CASE ("Rig: tabela de parâmetros tem ids únicos e padrões dentro da faixa")
+TEST_CASE ("Rig: tabela de parametros tem ids unicos e padroes dentro da faixa")
 {
     const auto& t = hushrig::paramTable();
     for (size_t i = 0; i < t.size(); ++i)
@@ -63,7 +63,7 @@ TEST_CASE ("Rig: tabela de parâmetros tem ids únicos e padrões dentro da faix
     }
 }
 
-TEST_CASE ("Rig: ordem inválida é ignorada")
+TEST_CASE ("Rig: ordem invalida e ignorada")
 {
     hushrig::RigState state;
     hushrig::ChainOrder bad;
@@ -89,7 +89,7 @@ TEST_CASE ("Rig: sem pedais e com o gate desligado o sinal passa intacto")
     CHECK_THAT (rms (out, 0), Catch::Matchers::WithinRel (0.5f / std::sqrt (2.0f), 0.01f));
 }
 
-TEST_CASE ("Rig: ganho de saída muda o nível")
+TEST_CASE ("Rig: ganho de saida muda o nivel")
 {
     hushrig::RigState state;
     state.set (hushrig::pGateBypass, 1.0f);
@@ -104,7 +104,7 @@ TEST_CASE ("Rig: ganho de saída muda o nível")
     CHECK_THAT (quieter / base, Catch::Matchers::WithinRel (0.501f, 0.02f));
 }
 
-TEST_CASE ("Rig: o gate fecha com ruído baixo e abre com a guitarra")
+TEST_CASE ("Rig: o gate fecha com ruido baixo e abre com a guitarra")
 {
     hushrig::RigState state;
     state.set (hushrig::pOutputGain, 0.0f);
