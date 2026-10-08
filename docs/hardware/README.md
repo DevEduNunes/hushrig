@@ -12,7 +12,7 @@ Dois alvos, o mesmo código:
 
 | Alvo | Placa | Controle | Para quê |
 |---|---|---|---|
-| **`esp32`** | ESP32 comum (DevKit V1, ~US$ 3) | **Bluetooth LE** | o **barato e compacto** (recomendado) |
+| **`esp32`** | ESP32 comum (DevKitC 38 pinos, ~US$ 4) | **Bluetooth LE** | o **barato e compacto** (recomendado) |
 | `esp32s3` | ESP32-S3 | BLE **e** WiFi (página servida pelo próprio pedal) | quem quer controlar sem depender de internet/HTTPS |
 
 > **Status:** o núcleo (`firmware/src/Rig.h`) e a página de controle (inclusive o caminho BLE, com um GATT simulado) estão testados no PC. O **firmware ESP-IDF ainda não foi compilado nem rodou em hardware**: o ambiente onde foi escrito não alcança os servidores do PlatformIO. O workflow `Firmware` (GitHub Actions) compila os dois alvos a cada push; espere ajustes na primeira montagem.
@@ -29,11 +29,11 @@ Dois alvos, o mesmo código:
 | ⚠️ iPhone | Safari não tem Web Bluetooth; use um navegador como o Bluefy. No Android, Chrome/Edge. |
 | ⚠️ Delay | até **700 ms** (para caber na RAM interna, sem PSRAM). O app de PC vai até 2 s. |
 
-## Lista de peças — versão mais barata (~US$ 14, preços aproximados)
+## Lista de peças — versão mais barata (~US$ 15 + a PCB, preços aproximados)
 
 | Qtd | Peça | ~US$ | Para quê |
 |---|---|---|---|
-| 1 | **ESP32 DevKit V1** (WROOM-32, 30 pinos) | 3,5 | cérebro. Serve qualquer ESP32 clássico que exponha os GPIO 0, 2, 25, 26, 27, 32, 33 e 34. |
+| 1 | **ESP32-DevKitC de 38 pinos** (WROOM-32, 2 fileiras de 19) | 4 | cérebro. **Não use o DevKit V1 de 30 pinos: ele não expõe o GPIO0**, que o I2S precisa para o MCLK. Confira na sua placa os pinos 0, 2, 25, 26, 27, 32, 33, 34, 5V e 3V3 (a placa da PCB segue o pinout do DevKitC/NodeMCU-32S). |
 | 1 | Módulo ADC **PCM1808** (I2S, 24 bits) | 2,5 | entrada de áudio |
 | 1 | Módulo DAC **PCM5102A** (I2S, 24 bits) | 2,5 | saída de áudio |
 | 1 | **MCP6022** (ou ampop CMOS rail-to-rail de baixo ruído, ex. TLC2272) | 1 | buffer de alta impedância para a guitarra |
@@ -48,9 +48,46 @@ Dois alvos, o mesmo código:
 
 ### Compacto
 
-- Tudo cabe em **uma placa perfurada de ~5 × 7 cm**: o DevKit (52 × 28 mm) e os dois módulos (~30 × 15 mm) lado a lado, o ampop num soquete.
-- Caixa de alumínio **1590B** (112 × 60 mm) comporta tudo com o footswitch em cima e os jacks nas laterais; a **1590A** (92 × 38 mm) só se você tirar o DevKit da placa e soldar um módulo ESP32 direto (o resto é igual).
-- Variante ainda menor/barata: **ESP32-S3 Super Mini** ou módulos ESP32 sem placa de desenvolvimento, desde que o pinout seja ajustado em `config.h`.
+- **Com a PCB** (abaixo): 100 × 76 mm, tudo em uma placa, o DevKit encaixa em soquetes e os jacks/footswitch/pot ficam presos na caixa e ligados por fio.
+- **Sem PCB:** cabe numa placa perfurada de ~5 × 7 cm (DevKit, dois módulos e o ampop num soquete).
+- Caixa de alumínio **1590BB** (120 × 94 mm) ou **1590B** (112 × 60 mm, só sem PCB) com o footswitch em cima e os jacks nas laterais.
+
+## Esquemático e PCB (KiCad 7)
+
+Em [`hardware/`](../../hardware): esquemático, PCB e arquivos prontos para a fábrica. A placa é uma **carrier**: leva o ESP32-DevKitC em soquetes, tem o buffer de entrada, a alimentação filtrada e os conectores, e liga os módulos PCM1808/PCM5102A por cabinhos. *Por que cabinhos e não os módulos soldados?* Cada fabricante vende esses módulos com um pinout diferente; a placa expõe um cabeçalho rotulado por módulo (J3 e J4) e você liga fio a fio conforme o nome impresso no seu módulo.
+
+<img src="../images/hardware-schematic.png" alt="Esquemático" width="900">
+
+<table><tr>
+<td><img src="../images/hardware-pcb-top.png" alt="PCB, face superior" width="440"><br><sub>Face superior</sub></td>
+<td><img src="../images/hardware-pcb-bottom.png" alt="PCB, face inferior" width="440"><br><sub>Face inferior</sub></td>
+</tr></table>
+
+| Arquivo | O que é |
+|---|---|
+| `hardware/kicad/hushrig_carrier.kicad_pro` | projeto do KiCad (abra este) |
+| `hardware/kicad/hushrig_carrier_schematic.pdf` | esquemático em PDF |
+| `hardware/gerbers/hushrig_carrier_gerbers.zip` | gerbers + furação: envie direto à fábrica |
+| `hardware/bom.csv` | lista de materiais |
+
+**Especificação para pedir:** 2 camadas, 100 × 76 mm, 1,6 mm, cobre 1 oz, furo mínimo 0,4 mm (vias), trilha/espaço mínimos usados 0,25/0,2 mm, máscara de solda e serigrafia na face superior, acabamento HASL (com chumbo é mais fácil de soldar).
+
+**Cabeamento dos módulos:**
+
+| Cabeçalho | Pino → liga em |
+|---|---|
+| **J3 (ADC PCM1808)** | 5V → VCC 5V · 3V3 → 3V3/VDD · GND → GND · SCK → SCK/SCKI · BCK → BCK · LRCK → LRC/LRCK · OUT → OUT/DOUT · L-IN → entrada L · GND (último) → GND da entrada |
+| **J4 (DAC PCM5102A)** | VIN → VIN (veja se o seu módulo aceita 5 V ou 3,3 V) · 3V3 → 3V3 (se houver) · GND · BCK → BCK · LRCK → LCK/LRCK · DIN → DIN · L-OUT → saída L · GND (último) → GND da saída |
+| J5 / J6 | jack de entrada / saída (1 = ponta, 2 = luva) |
+| J7 | potenciômetro 10 kΩ: 1 = entrada (DAC), 2 = cursor, 3 = GND |
+| J8 / J9 | footswitch / LED externo (1 = ânodo) |
+| J10 / J11 | 5 V externo (alternativa ao USB) / mede a bateria (+ da célula e GND) |
+
+> **Atenção:** o GPIO0 (MCLK) também é o pino de boot do ESP32. Se algum módulo PCM1808 segurar o SCK em nível baixo, o ESP32 entra em modo de gravação ao ligar: nesse caso, desconecte o fio do SCK para ligar. E **nunca ligue J10 e o USB do DevKit ao mesmo tempo**.
+
+**Como foi verificado (e o que não foi):** o esquemático e a PCB saem do mesmo arquivo (`hardware/tools/netlist.py`), e `verify_sch.py` confere que a netlist exportada pelo KiCad é idêntica a ele. `verify_pcb.py` (DRC próprio, o KiCad 7 não tem DRC na linha de comando) confere folga entre redes, largura, anel das vias, folga entre furos, distância à borda e a conectividade das 28 redes: **sem violações**. **Não foi rodado o ERC nem o DRC do próprio KiCad** (só chegam no KiCad 8): abra o projeto e rode os dois antes de mandar fabricar. **Nenhuma placa foi montada.** Os 38 pinos do DevKit seguem o pinout do DevKitC; compare com a sua placa. Pontos de atenção do layout: o MCLK dá uma volta de ~100 mm (o GPIO0 só existe na coluna direita do DevKit); o nó de 1 MΩ do buffer (IN_AC) fica a mais de 17 mm de qualquer sinal digital, mas a saída do buffer (L-IN) chega ao J3 ao lado dos pinos de clock: **afaste o fio L-IN dos fios SCK/BCK/LRCK** (ou use um par trançado com o GND).
+
+Para regenerar tudo a partir do código: `python3 hardware/tools/gen_sch.py && python3 hardware/tools/gen_pcb.py && python3 hardware/tools/verify_sch.py && python3 hardware/tools/verify_pcb.py && hardware/tools/export.sh` (precisa de `kicad` 7 e `pip install kiutils shapely numpy`).
 
 ## Ligações
 
@@ -179,4 +216,5 @@ Protocolo (JSON, uma mensagem por linha no BLE; um frame por mensagem no WebSock
 - [x] Controle por BLE (Web Bluetooth) — falta validar com um pedal de verdade
 - [ ] Relé para *true bypass* analógico (hoje o bypass é digital, passa pelos conversores)
 - [ ] Afinador
-- [ ] PCB própria (ESP32 + codec numa placa só)
+- [x] PCB carrier (KiCad, DRC próprio sem violações) — falta rodar o ERC/DRC do KiCad e montar uma
+- [ ] PCB v2 com os CIs (PCM1808/PCM5102A) e o módulo ESP32 direto na placa, só SMD, para montagem pela fábrica

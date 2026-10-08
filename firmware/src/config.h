@@ -31,7 +31,7 @@ constexpr gpio_num_t kFootswitch = GPIO_NUM_9;  // botão para GND (pull-up inte
 constexpr gpio_num_t kLed        = GPIO_NUM_10; // LED (com resistor 1k) aceso = efeito ligado
 constexpr adc_channel_t kBatteryChannel = ADC_CHANNEL_0; // GPIO1
 #else
-// ESP32 clássico (WROOM-32 / DevKit V1). No ESP32 o MCLK do I2S só sai nos GPIO0, 1 ou 3.
+// ESP32 clássico, DevKitC de 38 pinos (o de 30 pinos NÃO expõe o GPIO0). No ESP32 o MCLK do I2S só sai nos GPIO0, 1 ou 3.
 constexpr gpio_num_t kI2sMclk = GPIO_NUM_0;
 constexpr gpio_num_t kI2sBclk = GPIO_NUM_27;
 constexpr gpio_num_t kI2sWs   = GPIO_NUM_26;
