@@ -1,0 +1,331 @@
+// GERADO por firmware/tools/gen_web_header.py a partir de web/index.html. Não edite à mão.
+#pragma once
+
+static const char kIndexHtml[] = R"HUSHRIG_HTML(<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0912">
+<title>HushRig</title>
+<style>
+  :root {
+    --bg: #0b0912; --card: #16121f; --card2: #1d1829; --line: #2a2340;
+    --text: #ece8f6; --muted: #8d84a8; --accent: #9b5cff; --accent2: #c39bff;
+    --ok: #35d07f; --warn: #ffb347; --bad: #ff5c6c;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { padding: 12px 16px calc(24px + env(safe-area-inset-bottom)); max-width: 640px; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 10px; padding: 6px 0 12px; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .5px; }
+  h1 span { color: var(--accent); }
+  .grow { flex: 1; }
+  .chip { font-size: 12px; color: var(--muted); background: var(--card); border: 1px solid var(--line); border-radius: 99px; padding: 3px 10px; white-space: nowrap; }
+  .chip.warn { color: var(--warn); border-color: var(--warn); }
+  .chip.bad { color: var(--bad); border-color: var(--bad); }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--bad); margin-right: 6px; }
+  .dot.ok { background: var(--ok); }
+
+  .power { width: 100%; padding: 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); color: var(--muted);
+           font: 700 16px inherit; letter-spacing: 1px; cursor: pointer; }
+  .power.on { background: linear-gradient(135deg, #6d2fd6, var(--accent)); color: #fff; border-color: var(--accent); box-shadow: 0 0 24px #9b5cff55; }
+
+  .meters { display: grid; gap: 8px; margin: 12px 0; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+  .meter { display: grid; grid-template-columns: 38px 1fr 54px; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+  .bar { height: 10px; background: var(--card2); border-radius: 5px; overflow: hidden; position: relative; }
+  .bar i { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, var(--ok), var(--accent2) 80%, var(--bad)); transition: width 80ms linear; }
+  .gate { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .led { width: 10px; height: 10px; border-radius: 50%; background: var(--card2); border: 1px solid var(--line); }
+  .led.open { background: var(--ok); border-color: var(--ok); box-shadow: 0 0 8px var(--ok); }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; margin: 10px 0; overflow: hidden; }
+  .card.off .body { opacity: .45; }
+  .head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--card2); }
+  .head h2 { margin: 0; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; flex: 1; }
+  .body { padding: 6px 12px 12px; }
+  .mini { border: 1px solid var(--line); background: var(--card); color: var(--text); width: 34px; height: 34px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+  .mini:disabled { opacity: .25; }
+  .switch { position: relative; width: 44px; height: 26px; flex: none; }
+  .switch input { opacity: 0; position: absolute; inset: 0; margin: 0; width: 100%; height: 100%; z-index: 1; cursor: pointer; }
+  .switch span { position: absolute; inset: 0; background: var(--line); border-radius: 13px; transition: .15s; }
+  .switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: .15s; }
+  .switch input:checked + span { background: var(--accent); }
+  .switch input:checked + span::after { transform: translateX(18px); }
+
+  .row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 10px; padding: 8px 0 2px; }
+  .row label { font-size: 13px; color: var(--muted); }
+  .row output { font-size: 13px; font-variant-numeric: tabular-nums; }
+  .row input[type=range] { grid-column: 1 / -1; width: 100%; height: 32px; accent-color: var(--accent); margin: 0; }
+
+  .presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+  .slot { padding: 12px 0; border-radius: 10px; border: 1px solid var(--line); background: var(--card2); color: var(--text); font: 600 15px inherit; cursor: pointer; }
+  .slot.active { border-color: var(--accent); color: var(--accent2); box-shadow: inset 0 0 0 1px var(--accent); }
+  .actions { display: flex; gap: 8px; margin-top: 10px; }
+  .btn { flex: 1; padding: 11px; border-radius: 10px; border: 1px solid var(--line); background: var(--card2); color: var(--text); font: 600 14px inherit; cursor: pointer; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); transform: translate(-50%, 20px); background: var(--accent); color: #fff;
+           padding: 9px 16px; border-radius: 99px; opacity: 0; transition: .2s; pointer-events: none; font-size: 14px; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .connect { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; z-index: 5; }
+  .connect.hidden { display: none; }
+  .connect p { color: var(--muted); max-width: 320px; margin: 0; }
+  .connect .btn { flex: none; width: 100%; max-width: 320px; padding: 15px; font-size: 16px; }
+  footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 18px; }
+</style>
+</head>
+<body>
+<div class="connect" id="connect">
+  <h1 style="font-size:28px">Hush<span>Rig</span></h1>
+  <p id="connectMsg">Ligue o pedal e conecte pelo Bluetooth.</p>
+  <button class="btn primary" id="btnBle">Conectar via Bluetooth</button>
+  <p id="connectHint" style="font-size:12px"></p>
+</div>
+
+<header>
+  <h1>Hush<span>Rig</span></h1>
+  <div class="grow"></div>
+  <span class="chip" id="conn"><i class="dot"></i><span>offline</span></span>
+  <span class="chip" id="batt">🔋 --</span>
+</header>
+
+<button class="power" id="power">EFEITO DESLIGADO</button>
+
+<section class="meters">
+  <div class="meter"><span>ENTR.</span><div class="bar"><i id="mIn"></i></div><b id="tIn">-∞ dB</b></div>
+  <div class="meter"><span>SAÍDA</span><div class="bar"><i id="mOut"></i></div><b id="tOut">-∞ dB</b></div>
+  <div class="gate"><span class="led" id="gateLed"></span><span id="gateTxt">Gate fechado</span><span class="grow"></span><span id="cpu">DSP --</span></div>
+</section>
+
+<div id="rig"></div>
+
+<section class="card">
+  <div class="head"><h2>Presets</h2></div>
+  <div class="body">
+    <div class="presets" id="slots"></div>
+    <div class="actions">
+      <button class="btn primary" id="save">Salvar no slot</button>
+      <button class="btn" id="reset">Restaurar padrão</button>
+    </div>
+  </div>
+</section>
+
+<footer>HushRig hardware</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+// Rótulos e unidades. As faixas (min/max) vêm do próprio pedal, então nunca ficam fora de sincronia com o firmware.
+const SECTIONS = [
+  { key: "io", title: "Entrada / Gate / Saída", fixed: true, params: [
+    ["inputGain", "Ganho de entrada", "dB"], ["gateThreshold", "Gate · threshold", "dB"],
+    ["gateHold", "Gate · hold", "ms"], ["gateRelease", "Gate · release", "ms"],
+    ["outputGain", "Volume de saída", "dB"] ], toggle: "gateBypass", toggleInverted: true, toggleLabel: "gate" },
+  { key: "0", title: "Overdrive", toggle: "odOn", params: [["odDrive", "Drive", "dB"], ["odTone", "Tom", "Hz"], ["odLevel", "Nível", "dB"]] },
+  { key: "1", title: "EQ", toggle: "eqOn", params: [["eqLow", "Graves", "dB"], ["eqMid", "Médios", "dB"], ["eqHigh", "Agudos", "dB"]] },
+  { key: "2", title: "Chorus", toggle: "chOn", params: [["chRate", "Velocidade", "Hz"], ["chDepth", "Profundidade", ""], ["chMix", "Mix", ""]] },
+  { key: "3", title: "Delay", toggle: "dlOn", params: [["dlTime", "Tempo", "ms"], ["dlFeedback", "Repetições", ""], ["dlMix", "Mix", ""], ["dlTone", "Tom", "Hz"]] },
+  { key: "4", title: "Reverb", toggle: "rvOn", params: [["rvRoom", "Sala", ""], ["rvDamp", "Abafamento", ""], ["rvMix", "Mix", ""]] },
+];
+const PARAMS = [
+  ["inputGain", -24, 24], ["gateBypass", 0, 1], ["gateThreshold", -90, -20], ["gateHold", 0, 500], ["gateRelease", 5, 1000], ["outputGain", -24, 12],
+  ["odOn", 0, 1], ["odDrive", 0, 40], ["odTone", 500, 12000], ["odLevel", -24, 6],
+  ["eqOn", 0, 1], ["eqLow", -12, 12], ["eqMid", -12, 12], ["eqHigh", -12, 12],
+  ["chOn", 0, 1], ["chRate", 0.1, 5], ["chDepth", 0, 1], ["chMix", 0, 1],
+  ["dlOn", 0, 1], ["dlTime", 1, 700], ["dlFeedback", 0, 0.95], ["dlMix", 0, 1], ["dlTone", 500, 12000],
+  ["rvOn", 0, 1], ["rvRoom", 0, 1], ["rvDamp", 0, 1], ["rvMix", 0, 1],
+];
+const RANGES = Object.fromEntries(PARAMS.map(([id, a, b]) => [id, [a, b]]));
+const LOG_PARAMS = new Set(["odTone", "dlTone", "gateHold", "gateRelease", "dlTime", "chRate"]); // sliders em escala logarítmica
+
+let state = null, link = null; // link = { send(text), name }
+const $ = (id) => document.getElementById(id);
+const sendQueue = new Map();
+
+function send(obj) { if (link) link.send(JSON.stringify(obj)); }
+
+// Limita a ~30 mensagens/s por parâmetro enquanto o dedo arrasta o slider.
+function sendParam(id, v) {
+  if (sendQueue.has(id)) { sendQueue.get(id).v = v; return; }
+  sendQueue.set(id, { v });
+  setTimeout(() => { const e = sendQueue.get(id); sendQueue.delete(id); send({ set: id, v: e.v }); }, 33);
+}
+
+function toast(text) {
+  const t = $("toast"); t.textContent = text; t.classList.add("show");
+  clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove("show"), 1600);
+}
+
+const fmt = (id, v, unit) => {
+  if (unit === "Hz" && v >= 1000) return (v / 1000).toFixed(1) + " kHz";
+  const span = RANGES[id][1] - RANGES[id][0];
+  return v.toFixed(span > 200 ? 0 : span > 20 ? 1 : 2) + (unit ? " " + unit : "");
+};
+
+// ---- slider (linear ou log) ----
+const toPos = (id, v) => { const [a, b] = RANGES[id]; return LOG_PARAMS.has(id) && a > 0 ? Math.log(v / a) / Math.log(b / a) : (v - a) / (b - a); };
+const fromPos = (id, p) => { const [a, b] = RANGES[id]; return LOG_PARAMS.has(id) && a > 0 ? a * Math.pow(b / a, p) : a + p * (b - a); };
+
+function buildRig() {
+  const root = $("rig"); root.innerHTML = "";
+  const order = state.order;           // ids dos pedais na cadeia
+  const byKey = Object.fromEntries(SECTIONS.map((s) => [s.key, s]));
+  const list = [byKey.io, ...order.filter((i) => byKey[String(i)]).map((i) => byKey[String(i)])];
+
+  list.forEach((sec, idx) => {
+    const card = document.createElement("section"); card.className = "card"; card.dataset.key = sec.key;
+    const head = document.createElement("div"); head.className = "head";
+    head.innerHTML = `<h2>${sec.title}</h2>`;
+    if (!sec.fixed) {
+      const up = document.createElement("button"); up.className = "mini"; up.textContent = "▲"; up.title = "Subir na cadeia";
+      const dn = document.createElement("button"); dn.className = "mini"; dn.textContent = "▼"; dn.title = "Descer na cadeia";
+      up.disabled = idx <= 1; dn.disabled = idx === list.length - 1;
+      up.onclick = () => move(Number(sec.key), -1); dn.onclick = () => move(Number(sec.key), +1);
+      head.append(up, dn);
+    }
+    const sw = document.createElement("label"); sw.className = "switch";
+    const cb = document.createElement("input"); cb.type = "checkbox";
+    const on = state.p[sec.toggle] >= 0.5;
+    cb.checked = sec.toggleInverted ? !on : on;
+    cb.onchange = () => { const v = (sec.toggleInverted ? !cb.checked : cb.checked) ? 1 : 0; state.p[sec.toggle] = v; sendParam(sec.toggle, v); card.classList.toggle("off", !cb.checked); };
+    sw.append(cb, document.createElement("span")); head.append(sw);
+    card.classList.toggle("off", !cb.checked);
+    card.append(head);
+
+    const body = document.createElement("div"); body.className = "body";
+    sec.params.forEach(([id, label, unit]) => {
+      const row = document.createElement("div"); row.className = "row";
+      const lab = document.createElement("label"); lab.textContent = label;
+      const out = document.createElement("output");
+      const rng = document.createElement("input"); rng.type = "range"; rng.min = 0; rng.max = 1000; rng.id = "p_" + id;
+      const upd = () => { out.textContent = fmt(id, state.p[id], unit); };
+      rng.value = Math.round(toPos(id, state.p[id]) * 1000); upd();
+      rng.oninput = () => { const v = fromPos(id, rng.value / 1000); state.p[id] = v; upd(); sendParam(id, v); };
+      row.append(lab, out, rng); body.append(row);
+    });
+    card.append(body); root.append(card);
+  });
+}
+
+function move(pedal, delta) {
+  const o = state.order.slice();
+  // só os pedais editáveis (0..4) mudam de lugar; o slot do "amp" (5) fica onde está
+  const pos = o.indexOf(pedal); let to = pos + delta;
+  while (to >= 0 && to < o.length && o[to] === 5) to += delta;
+  if (to < 0 || to >= o.length) return;
+  o.splice(pos, 1); o.splice(to, 0, pedal);
+  state.order = o; buildRig(); send({ order: o });
+}
+
+function buildSlots() {
+  const box = $("slots"); box.innerHTML = "";
+  for (let i = 0; i < state.slots; i++) {
+    const b = document.createElement("button"); b.className = "slot" + (i === state.slot ? " active" : ""); b.textContent = String.fromCharCode(65 + i);
+    b.onclick = () => { send({ load: i }); toast("Preset " + String.fromCharCode(65 + i)); };
+    box.append(b);
+  }
+}
+
+function applyPower() {
+  const p = $("power"); p.classList.toggle("on", state.on);
+  p.textContent = state.on ? "EFEITO LIGADO" : "EFEITO DESLIGADO (BYPASS)";
+}
+
+const db = (x) => (x > 0.00003 ? 20 * Math.log10(x) : -Infinity);
+const barPct = (x) => Math.max(0, Math.min(100, ((db(x) + 60) / 60) * 100));
+
+function onMeters([i, o, gate, batt, cpu, under]) {
+  $("mIn").style.width = barPct(i) + "%"; $("mOut").style.width = barPct(o) + "%";
+  $("tIn").textContent = isFinite(db(i)) ? db(i).toFixed(0) + " dB" : "-∞ dB";
+  $("tOut").textContent = isFinite(db(o)) ? db(o).toFixed(0) + " dB" : "-∞ dB";
+  $("gateLed").classList.toggle("open", !!gate); $("gateTxt").textContent = gate ? "Gate aberto" : "Gate fechado";
+  const b = $("batt"); b.textContent = batt < 0 ? "🔌 USB" : "🔋 " + batt + "%"; b.className = "chip" + (batt >= 0 && batt < 10 ? " bad" : batt >= 0 && batt < 20 ? " warn" : "");
+  const c = $("cpu"); c.textContent = "DSP " + Math.round(cpu * 100) + "%" + (under ? " · falhas " + under : "");
+  c.style.color = cpu > 0.8 || under ? "var(--warn)" : "";
+}
+
+function setConn(ok, label) {
+  const c = $("conn"); c.querySelector(".dot").classList.toggle("ok", ok);
+  c.querySelector("span").textContent = ok ? (label || "conectado") : "reconectando…";
+  $("connect").classList.toggle("hidden", ok || !!state);
+}
+
+// Uma mensagem = uma linha de JSON. Cada transporte entrega o texto já remontado.
+function onText(text) {
+  let m; try { m = JSON.parse(text); } catch { return; } // pedaço corrompido: ignora (a próxima linha ressincroniza)
+  if (m.m) return onMeters(m.m);
+  if (Array.isArray(m.p)) {
+    state = { p: Object.fromEntries(PARAMS.map(([id], i) => [id, m.p[i]])), order: m.order, on: !!m.on, slot: m.slot, slots: m.slots };
+    buildRig(); buildSlots(); applyPower();
+  }
+}
+
+// ---- WiFi / WebSocket (página servida pelo próprio pedal, ESP32-S3) ----
+const FROM_DEVICE = location.protocol === "http:" && /^(\d+\.){3}\d+$/.test(location.hostname);
+function connectWifi(retry = 0) {
+  const ws = new WebSocket("ws://" + location.host + "/ws");
+  ws.onopen = () => { link = { send: (t) => ws.readyState === 1 && ws.send(t) }; setConn(true, "WiFi"); ws.send(JSON.stringify({ hello: 1 })); };
+  ws.onclose = () => { link = null; setConn(false); setTimeout(() => connectWifi(Math.min(retry + 1, 6)), 500 + retry * 500); };
+  ws.onmessage = (e) => onText(e.data);
+}
+
+// ---- Bluetooth LE (Web Bluetooth: Chrome/Edge no Android; exige HTTPS) ----
+const BLE_SVC = "a7c9e0f1-0b3d-4e5a-9c1f-4d6b2e8a1001", BLE_RX = "a7c9e0f1-0b3d-4e5a-9c1f-4d6b2e8a1002", BLE_TX = "a7c9e0f1-0b3d-4e5a-9c1f-4d6b2e8a1003";
+let bleDevice = null;
+
+async function openBle(device) {
+  const server = await device.gatt.connect();
+  const svc = await server.getPrimaryService(BLE_SVC);
+  const rx = await svc.getCharacteristic(BLE_RX), tx = await svc.getCharacteristic(BLE_TX);
+  let buffer = "", chain = Promise.resolve();
+  const dec = new TextDecoder(), enc = new TextEncoder();
+  tx.addEventListener("characteristicvaluechanged", (e) => {
+    buffer += dec.decode(e.target.value);
+    let i; while ((i = buffer.indexOf("\n")) >= 0) { const line = buffer.slice(0, i); buffer = buffer.slice(i + 1); onText(line); }
+    if (buffer.length > 1024) buffer = "";
+  });
+  await tx.startNotifications();
+  // Escritas de 20 bytes (cabem no MTU mínimo) e em fila: o Web Bluetooth não aceita duas ao mesmo tempo.
+  link = { send: (t) => {
+    const bytes = enc.encode(t + "\n");
+    chain = chain.then(async () => { for (let o = 0; o < bytes.length; o += 20) await rx.writeValueWithoutResponse(bytes.slice(o, o + 20)); }).catch(() => {});
+  } };
+  setConn(true, "Bluetooth");
+  send({ hello: 1 });
+}
+
+async function connectBle() {
+  try {
+    if (!bleDevice) {
+      bleDevice = await navigator.bluetooth.requestDevice({ filters: [{ namePrefix: "HushRig" }], optionalServices: [BLE_SVC] });
+      bleDevice.addEventListener("gattserverdisconnected", () => { link = null; setConn(false); reconnectBle(); });
+    }
+    $("connectMsg").textContent = "Conectando…";
+    await openBle(bleDevice);
+  } catch (err) {
+    $("connectMsg").textContent = err && err.name === "NotFoundError" ? "Nenhum pedal escolhido." : "Não consegui conectar: " + (err && err.message || err);
+  }
+}
+
+async function reconnectBle(attempt = 0) {
+  if (link || !bleDevice) return;
+  try { await openBle(bleDevice); }
+  catch { setTimeout(() => reconnectBle(attempt + 1), Math.min(4000, 800 + attempt * 600)); }
+}
+
+$("btnBle").onclick = connectBle;
+if (FROM_DEVICE) { $("connectMsg").textContent = "Conectando pelo WiFi do pedal…"; $("btnBle").style.display = "none"; connectWifi(); }
+else if (!navigator.bluetooth) {
+  $("btnBle").style.display = "none";
+  $("connectMsg").textContent = "Este navegador não tem Web Bluetooth.";
+  $("connectHint").textContent = "No Android use o Chrome. No iPhone, Web Bluetooth não funciona no Safari: use um navegador como o Bluefy.";
+} else $("connectHint").textContent = "Abra esta página com o pedal ligado e perto do celular.";
+
+$("power").onclick = () => { if (!state) return; state.on = !state.on; applyPower(); send({ on: state.on }); };
+$("save").onclick = () => { if (!state) return; send({ save: state.slot }); toast("Salvo no slot " + String.fromCharCode(65 + state.slot)); };
+$("reset").onclick = () => { if (confirm("Voltar todos os ajustes ao padrão?")) send({ reset: 1 }); };
+</script>
+</body>
+</html>
+)HUSHRIG_HTML";
+static constexpr unsigned kIndexHtmlLen = sizeof (kIndexHtml) - 1;

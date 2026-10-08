@@ -1,0 +1,38 @@
+name: Firmware
+
+on:
+  push:
+    branches: [main, master]
+    paths: ['firmware/**', 'src/dsp/**', 'tests/RigTests.cpp', '.github/workflows/firmware.yml']
+  pull_request:
+    paths: ['firmware/**', 'src/dsp/**', 'tests/RigTests.cpp', '.github/workflows/firmware.yml']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [esp32, esp32s3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Tabela de parâmetros da página == Rig.h
+        run: python firmware/tools/check_web_params.py
+      - name: Header da página (web_index.h) em dia
+        run: python firmware/tools/gen_web_header.py --check
+      - name: Instala o PlatformIO
+        run: pip install platformio
+      - name: Compila o firmware (${{ matrix.env }})
+        working-directory: firmware
+        run: pio run -e ${{ matrix.env }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hushrig-firmware-${{ matrix.env }}
+          path: |
+            firmware/.pio/build/${{ matrix.env }}/firmware.bin
+            firmware/.pio/build/${{ matrix.env }}/bootloader.bin
+            firmware/.pio/build/${{ matrix.env }}/partitions.bin

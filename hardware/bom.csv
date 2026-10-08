@@ -1,0 +1,24 @@
+Qtd,Referências,Valor,Footprint,Observação
+2,R11 R12,100k,R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal,"Resistor 1/4 W 5% (ou 1%), furo passante"
+6,C6 C7 C9 C10 C13 C14,100n,C_Disc_D5.0mm_W2.5mm_P5.00mm,"Capacitor cerâmico 100 nF, passo 5 mm"
+1,C2,100p,C_Disc_D5.0mm_W2.5mm_P5.00mm,"Capacitor cerâmico 100 pF, passo 5 mm"
+2,C5 C8,100u,CP_Radial_D6.3mm_P2.50mm,Capacitor eletrolítico radial (≥ 16 V)
+2,R2 R3,10k,R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal,"Resistor 1/4 W 5% (ou 1%), furo passante"
+4,C3 C4 C11 C12,10u,CP_Radial_D5.0mm_P2.00mm,Capacitor eletrolítico radial (≥ 16 V)
+1,R1,1M,R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal,"Resistor 1/4 W 5% (ou 1%), furo passante"
+4,R4 R5 R10 R13,1k,R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal,"Resistor 1/4 W 5% (ou 1%), furo passante"
+1,C1,1u filme,C_Rect_L7.2mm_W3.0mm_P5.00mm_FKS2_FKP2_MKS2_MKP2,"Capacitor de filme 1 uF (poliéster/MKT), passo 5 mm"
+1,R6,22,R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal,"Resistor 1/4 W 5% (ou 1%), furo passante"
+3,R7 R8 R9,47,R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal,"Resistor 1/4 W 5% (ou 1%), furo passante"
+1,J3,ADC PCM1808,PinHeader_1x09_P2.54mm_Vertical,"Barra de pinos 2,54 mm macho"
+1,J10,ALIM 5V,PinHeader_1x02_P2.54mm_Vertical,"Barra de pinos 2,54 mm macho"
+1,J11,BATERIA (leitura),PinHeader_1x02_P2.54mm_Vertical,"Barra de pinos 2,54 mm macho"
+1,J4,DAC PCM5102A,PinHeader_1x08_P2.54mm_Vertical,"Barra de pinos 2,54 mm macho"
+1,J5,ENTRADA (jack guitarra),PinHeader_1x02_P2.54mm_Vertical,"Barra de pinos 2,54 mm macho"
+1,J2,ESP32 DevKitC (direita),PinSocket_1x19_P2.54mm_Vertical,"Barra de pinos 2,54 mm fêmea (soquete do DevKit)"
+1,J1,ESP32 DevKitC (esquerda),PinSocket_1x19_P2.54mm_Vertical,"Barra de pinos 2,54 mm fêmea (soquete do DevKit)"
+1,J8,FOOTSWITCH,PinHeader_1x02_P2.54mm_Vertical,"Barra de pinos 2,54 mm macho"
+1,J9,LED,PinHeader_1x02_P2.54mm_Vertical,"Barra de pinos 2,54 mm macho"
+1,U1,MCP6022-I/P,DIP-8_W7.62mm_Socket,MCP6022-I/P (DIP-8) ou TLC2272; use soquete DIP-8
+1,J6,SAIDA (jack amplificador),PinHeader_1x02_P2.54mm_Vertical,"Barra de pinos 2,54 mm macho"
+1,J7,VOLUME (pot 10k),PinHeader_1x03_P2.54mm_Vertical,"Barra de pinos 2,54 mm macho"

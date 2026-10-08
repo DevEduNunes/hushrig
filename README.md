@@ -118,6 +118,7 @@ No app standalone, toda vez que você abre o HushRig ele procura uma versão nov
 - [x] Gravação em WAV
 - [x] Amp sim com modelos [Neural Amp Modeler](https://www.neuralampmodeler.com/) (carregue um `.nam`; latência adicional zero)
 - [ ] Interface própria com pedais visuais
+- [~] [HushRig em hardware](docs/hardware/README.md): pedal com ESP32 (~US$ 14), controlado pelo celular por Bluetooth (esquemático, PCB e firmware prontos; falta montar e validar em placa real)
 
 ## 🛠️ Compilando
 
@@ -132,7 +133,8 @@ ctest --test-dir build -C Release --output-on-failure
 Os binários ficam em `build/HushRig_artefacts/Release/`.
 
 ```
-src/dsp/        # DSP sem dependência do JUCE (testável)
+src/dsp/        # DSP sem dependência do JUCE (testável; também usado pelo firmware)
+firmware/       # pedal em hardware (ESP32-S3), ver docs/hardware/
 src/update/     # verificação de versão, SHA-256 e atualizador
 src/            # processador e editor do plugin
 tests/          # testes (Catch2)

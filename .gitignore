@@ -7,3 +7,16 @@ CMakeUserPresets.json
 *.wav
 installer/deps/
 dist/
+
+.pio/
+firmware/sdkconfig.esp32s3
+
+# KiCad: estado local e backups
+*.kicad_prl
+*-backups/
+fp-info-cache
+_autosave-*
+*.kicad_sch-bak
+*.kicad_pcb-bak
+__pycache__/
+*.pyc
