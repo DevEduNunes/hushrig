@@ -1,22 +1,18 @@
 #include "net.h"
+#include "config.h"
 
-#include <cstdio>
-#include <cstdlib>
+#if HUSHRIG_WIFI
+
 #include <cstring>
 
-#include "audio.h"
-#include "battery.h"
-#include "cJSON.h"
-#include "config.h"
+#include "app.h"
 #include "esp_event.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "esp_netif.h"
 #include "esp_wifi.h"
 #include "esp_wifi_default.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "storage.h"
+#include "protocol.h"
 
 extern const uint8_t indexHtmlStart[] asm ("_binary_index_html_start");
 extern const uint8_t indexHtmlEnd[] asm ("_binary_index_html_end");
@@ -26,140 +22,15 @@ namespace
 const char* TAG = "net";
 constexpr size_t kMaxWsMessage = 512;
 
-hushrig::RigState* gState = nullptr;
 httpd_handle_t gServer = nullptr;
-int gSlot = 0;
 
-// ---- envio ------------------------------------------------------------------
-void broadcast (const char* text, size_t len)
+void sendText (int fd, const std::string& text)
 {
-    if (gServer == nullptr)
-        return;
-    int fds[cfg::kApMaxClients + 4];
-    size_t n = sizeof fds / sizeof fds[0];
-    if (httpd_get_client_list (gServer, &n, fds) != ESP_OK)
-        return;
-    for (size_t i = 0; i < n; ++i)
-        if (httpd_ws_get_fd_info (gServer, fds[i]) == HTTPD_WS_CLIENT_WEBSOCKET)
-        {
-            httpd_ws_frame_t f = {};
-            f.type = HTTPD_WS_TYPE_TEXT;
-            f.payload = reinterpret_cast<uint8_t*> (const_cast<char*> (text));
-            f.len = len;
-            httpd_ws_send_frame_async (gServer, fds[i], &f);
-        }
-}
-
-// Estado completo: valores, faixas (fonte única da verdade para a UI), ordem, bypass e slot.
-char* buildState()
-{
-    cJSON* root = cJSON_CreateObject();
-    cJSON* values = cJSON_AddObjectToObject (root, "p");
-    cJSON* ranges = cJSON_AddObjectToObject (root, "r");
-    for (int i = 0; i < hushrig::kNumParams; ++i)
-    {
-        const auto& info = hushrig::paramTable()[static_cast<size_t> (i)];
-        cJSON_AddNumberToObject (values, info.id, gState->get (static_cast<hushrig::Param> (i)));
-        cJSON* r = cJSON_AddArrayToObject (ranges, info.id);
-        cJSON_AddItemToArray (r, cJSON_CreateNumber (info.min));
-        cJSON_AddItemToArray (r, cJSON_CreateNumber (info.max));
-    }
-    cJSON* order = cJSON_AddArrayToObject (root, "order");
-    for (int s : gState->getOrder().slots)
-        cJSON_AddItemToArray (order, cJSON_CreateNumber (s));
-    cJSON_AddBoolToObject (root, "on", audio::isEngaged());
-    cJSON_AddNumberToObject (root, "slot", gSlot);
-    cJSON_AddNumberToObject (root, "slots", storage::kNumSlots);
-    char* text = cJSON_PrintUnformatted (root);
-    cJSON_Delete (root);
-    return text;
-}
-
-void sendStateTo (int fd)
-{
-    char* text = buildState();
-    if (text == nullptr)
-        return;
     httpd_ws_frame_t f = {};
     f.type = HTTPD_WS_TYPE_TEXT;
-    f.payload = reinterpret_cast<uint8_t*> (text);
-    f.len = std::strlen (text);
+    f.payload = reinterpret_cast<uint8_t*> (const_cast<char*> (text.data()));
+    f.len = text.size();
     httpd_ws_send_frame_async (gServer, fd, &f);
-    cJSON_free (text);
-}
-
-void broadcastState()
-{
-    char* text = buildState();
-    if (text == nullptr)
-        return;
-    broadcast (text, std::strlen (text));
-    cJSON_free (text);
-}
-
-// ---- recebimento --------------------------------------------------------------
-void handleMessage (int fd, const char* text)
-{
-    cJSON* msg = cJSON_Parse (text);
-    if (msg == nullptr)
-        return;
-
-    const cJSON* set = cJSON_GetObjectItem (msg, "set");
-    const cJSON* v = cJSON_GetObjectItem (msg, "v");
-    if (cJSON_IsString (set) && cJSON_IsNumber (v))
-        gState->setById (set->valuestring, static_cast<float> (v->valuedouble));
-
-    if (const cJSON* on = cJSON_GetObjectItem (msg, "on"); cJSON_IsBool (on))
-    {
-        audio::setEngaged (cJSON_IsTrue (on));
-        broadcastState();
-    }
-
-    if (const cJSON* order = cJSON_GetObjectItem (msg, "order"); cJSON_IsArray (order))
-    {
-        hushrig::ChainOrder o;
-        if (cJSON_GetArraySize (order) == hushrig::kNumPedals)
-        {
-            for (int i = 0; i < hushrig::kNumPedals; ++i)
-            {
-                const cJSON* item = cJSON_GetArrayItem (order, i);
-                o.slots[static_cast<size_t> (i)] = cJSON_IsNumber (item) ? item->valueint : -1;
-            }
-            gState->setOrder (o); // inválida = ignorada
-        }
-        broadcastState();
-    }
-
-    if (const cJSON* save = cJSON_GetObjectItem (msg, "save"); cJSON_IsNumber (save))
-    {
-        if (storage::save (save->valueint, *gState))
-        {
-            gSlot = save->valueint;
-            storage::setLastSlot (gSlot);
-        }
-        broadcastState();
-    }
-
-    if (const cJSON* load = cJSON_GetObjectItem (msg, "load"); cJSON_IsNumber (load))
-    {
-        if (storage::load (load->valueint, *gState))
-        {
-            gSlot = load->valueint;
-            storage::setLastSlot (gSlot);
-        }
-        broadcastState();
-    }
-
-    if (cJSON_GetObjectItem (msg, "reset") != nullptr)
-    {
-        gState->resetToDefaults();
-        broadcastState();
-    }
-
-    if (cJSON_GetObjectItem (msg, "hello") != nullptr)
-        sendStateTo (fd);
-
-    cJSON_Delete (msg);
 }
 
 esp_err_t wsHandler (httpd_req_t* req)
@@ -182,7 +53,11 @@ esp_err_t wsHandler (httpd_req_t* req)
         return ESP_OK;
     buf[frame.len] = '\0';
 
-    handleMessage (httpd_req_to_sockfd (req), buf);
+    const auto result = protocol::handle (buf);
+    if (result.broadcastState)
+        app::broadcastState();
+    else if (result.replyState)
+        sendText (httpd_req_to_sockfd (req), protocol::stateJson());
     return ESP_OK;
 }
 
@@ -200,27 +75,6 @@ esp_err_t noContentHandler (httpd_req_t* req)
     return httpd_resp_send (req, nullptr, 0);
 }
 
-// ---- medidores (10 Hz) --------------------------------------------------------
-void meterTask (void*)
-{
-    int tick = 0;
-    int batt = battery::percent();
-    for (;;)
-    {
-        vTaskDelay (pdMS_TO_TICKS (100));
-        if (++tick % 50 == 0) // bateria a cada 5 s
-            batt = battery::percent();
-
-        const auto m = audio::meters();
-        char text[128];
-        const int len = std::snprintf (text, sizeof text,
-                                       "{\"m\":[%.4f,%.4f,%d,%d,%.2f,%llu]}", m.inPeak, m.outPeak,
-                                       m.gateOpen ? 1 : 0, batt, m.cpuLoad, m.underruns);
-        broadcast (text, static_cast<size_t> (len));
-    }
-}
-
-// ---- WiFi -----------------------------------------------------------------------
 void startAccessPoint()
 {
     ESP_ERROR_CHECK (esp_netif_init());
@@ -248,10 +102,8 @@ void startAccessPoint()
 
 namespace net
 {
-void start (hushrig::RigState& state)
+void start()
 {
-    gState = &state;
-    gSlot = storage::lastSlot();
     startAccessPoint();
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
@@ -280,9 +132,20 @@ void start (hushrig::RigState& state)
     ws.handler = wsHandler;
     ws.is_websocket = true;
     httpd_register_uri_handler (gServer, &ws);
-
-    xTaskCreatePinnedToCore (meterTask, "meters", 4096, nullptr, 3, nullptr, 0);
 }
 
-void notifyStateChanged() { broadcastState(); }
+void broadcastText (const std::string& text)
+{
+    if (gServer == nullptr)
+        return;
+    int fds[cfg::kApMaxClients + 4];
+    size_t n = sizeof fds / sizeof fds[0];
+    if (httpd_get_client_list (gServer, &n, fds) != ESP_OK)
+        return;
+    for (size_t i = 0; i < n; ++i)
+        if (httpd_ws_get_fd_info (gServer, fds[i]) == HTTPD_WS_CLIENT_WEBSOCKET)
+            sendText (fds[i], text);
+}
 } // namespace net
+
+#endif // HUSHRIG_WIFI

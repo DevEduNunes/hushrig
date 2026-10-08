@@ -1,18 +1,22 @@
+# Comum aos dois alvos. Específicos: sdkconfig.defaults.esp32 e sdkconfig.defaults.esp32s3
+# (o ESP-IDF carrega o arquivo do alvo automaticamente).
+
 # --- CPU / desempenho -------------------------------------------------------
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
 CONFIG_COMPILER_OPTIMIZATION_PERF=y
 CONFIG_FREERTOS_HZ=1000
 
-# --- Flash e PSRAM (ESP32-S3 N16R8) -----------------------------------------
-CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
-CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
-CONFIG_SPIRAM=y
-CONFIG_SPIRAM_MODE_OCT=y
-CONFIG_SPIRAM_SPEED_80M=y
-CONFIG_SPIRAM_USE_MALLOC=y
-# buffers de até 8 KB (reverb, chorus) ficam na RAM interna; só o delay (384 KB) vai para a PSRAM
-CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=8192
+# --- BLE (NimBLE: bem menor que o Bluedroid) -----------------------------------
+CONFIG_BT_ENABLED=y
+CONFIG_BT_NIMBLE_ENABLED=y
+CONFIG_BT_NIMBLE_MAX_CONNECTIONS=1
+CONFIG_BT_NIMBLE_ROLE_CENTRAL=n
+CONFIG_BT_NIMBLE_ROLE_OBSERVER=n
+CONFIG_BT_NIMBLE_ROLE_BROADCASTER=y
+CONFIG_BT_NIMBLE_ROLE_PERIPHERAL=y
+CONFIG_BT_NIMBLE_PINNED_TO_CORE_0=y
+CONFIG_BT_NIMBLE_ATT_PREFERRED_MTU=247
 
-# --- Rede -------------------------------------------------------------------
+# --- WiFi / servidor web (usado só no esp32s3) -------------------------------
 CONFIG_HTTPD_WS_SUPPORT=y
 CONFIG_ESP_WIFI_SOFTAP_SUPPORT=y

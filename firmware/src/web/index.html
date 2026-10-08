@@ -64,10 +64,21 @@
   .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); transform: translate(-50%, 20px); background: var(--accent); color: #fff;
            padding: 9px 16px; border-radius: 99px; opacity: 0; transition: .2s; pointer-events: none; font-size: 14px; }
   .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .connect { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; z-index: 5; }
+  .connect.hidden { display: none; }
+  .connect p { color: var(--muted); max-width: 320px; margin: 0; }
+  .connect .btn { flex: none; width: 100%; max-width: 320px; padding: 15px; font-size: 16px; }
   footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 18px; }
 </style>
 </head>
 <body>
+<div class="connect" id="connect">
+  <h1 style="font-size:28px">Hush<span>Rig</span></h1>
+  <p id="connectMsg">Ligue o pedal e conecte pelo Bluetooth.</p>
+  <button class="btn primary" id="btnBle">Conectar via Bluetooth</button>
+  <p id="connectHint" style="font-size:12px"></p>
+</div>
+
 <header>
   <h1>Hush<span>Rig</span></h1>
   <div class="grow"></div>
@@ -96,7 +107,7 @@
   </div>
 </section>
 
-<footer>HushRig hardware · 192.168.4.1</footer>
+<footer>HushRig hardware</footer>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -113,13 +124,22 @@ const SECTIONS = [
   { key: "3", title: "Delay", toggle: "dlOn", params: [["dlTime", "Tempo", "ms"], ["dlFeedback", "Repetições", ""], ["dlMix", "Mix", ""], ["dlTone", "Tom", "Hz"]] },
   { key: "4", title: "Reverb", toggle: "rvOn", params: [["rvRoom", "Sala", ""], ["rvDamp", "Abafamento", ""], ["rvMix", "Mix", ""]] },
 ];
+const PARAMS = [
+  ["inputGain", -24, 24], ["gateBypass", 0, 1], ["gateThreshold", -90, -20], ["gateHold", 0, 500], ["gateRelease", 5, 1000], ["outputGain", -24, 12],
+  ["odOn", 0, 1], ["odDrive", 0, 40], ["odTone", 500, 12000], ["odLevel", -24, 6],
+  ["eqOn", 0, 1], ["eqLow", -12, 12], ["eqMid", -12, 12], ["eqHigh", -12, 12],
+  ["chOn", 0, 1], ["chRate", 0.1, 5], ["chDepth", 0, 1], ["chMix", 0, 1],
+  ["dlOn", 0, 1], ["dlTime", 1, 700], ["dlFeedback", 0, 0.95], ["dlMix", 0, 1], ["dlTone", 500, 12000],
+  ["rvOn", 0, 1], ["rvRoom", 0, 1], ["rvDamp", 0, 1], ["rvMix", 0, 1],
+];
+const RANGES = Object.fromEntries(PARAMS.map(([id, a, b]) => [id, [a, b]]));
 const LOG_PARAMS = new Set(["odTone", "dlTone", "gateHold", "gateRelease", "dlTime", "chRate"]); // sliders em escala logarítmica
 
-let ws, state = null, retry = 0;
+let state = null, link = null; // link = { send(text), name }
 const $ = (id) => document.getElementById(id);
 const sendQueue = new Map();
 
-function send(obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
+function send(obj) { if (link) link.send(JSON.stringify(obj)); }
 
 // Limita a ~30 mensagens/s por parâmetro enquanto o dedo arrasta o slider.
 function sendParam(id, v) {
@@ -135,13 +155,13 @@ function toast(text) {
 
 const fmt = (id, v, unit) => {
   if (unit === "Hz" && v >= 1000) return (v / 1000).toFixed(1) + " kHz";
-  const span = state.r[id][1] - state.r[id][0];
+  const span = RANGES[id][1] - RANGES[id][0];
   return v.toFixed(span > 200 ? 0 : span > 20 ? 1 : 2) + (unit ? " " + unit : "");
 };
 
 // ---- slider (linear ou log) ----
-const toPos = (id, v) => { const [a, b] = state.r[id]; return LOG_PARAMS.has(id) && a > 0 ? Math.log(v / a) / Math.log(b / a) : (v - a) / (b - a); };
-const fromPos = (id, p) => { const [a, b] = state.r[id]; return LOG_PARAMS.has(id) && a > 0 ? a * Math.pow(b / a, p) : a + p * (b - a); };
+const toPos = (id, v) => { const [a, b] = RANGES[id]; return LOG_PARAMS.has(id) && a > 0 ? Math.log(v / a) / Math.log(b / a) : (v - a) / (b - a); };
+const fromPos = (id, p) => { const [a, b] = RANGES[id]; return LOG_PARAMS.has(id) && a > 0 ? a * Math.pow(b / a, p) : a + p * (b - a); };
 
 function buildRig() {
   const root = $("rig"); root.innerHTML = "";
@@ -216,30 +236,91 @@ function onMeters([i, o, gate, batt, cpu, under]) {
   $("tIn").textContent = isFinite(db(i)) ? db(i).toFixed(0) + " dB" : "-∞ dB";
   $("tOut").textContent = isFinite(db(o)) ? db(o).toFixed(0) + " dB" : "-∞ dB";
   $("gateLed").classList.toggle("open", !!gate); $("gateTxt").textContent = gate ? "Gate aberto" : "Gate fechado";
-  const b = $("batt"); b.textContent = "🔋 " + batt + "%"; b.className = "chip" + (batt < 10 ? " bad" : batt < 20 ? " warn" : "");
+  const b = $("batt"); b.textContent = batt < 0 ? "🔌 USB" : "🔋 " + batt + "%"; b.className = "chip" + (batt >= 0 && batt < 10 ? " bad" : batt >= 0 && batt < 20 ? " warn" : "");
   const c = $("cpu"); c.textContent = "DSP " + Math.round(cpu * 100) + "%" + (under ? " · falhas " + under : "");
   c.style.color = cpu > 0.8 || under ? "var(--warn)" : "";
 }
 
-function setConn(ok) {
-  const c = $("conn"); c.querySelector(".dot").classList.toggle("ok", ok); c.querySelector("span").textContent = ok ? "conectado" : "reconectando…";
+function setConn(ok, label) {
+  const c = $("conn"); c.querySelector(".dot").classList.toggle("ok", ok);
+  c.querySelector("span").textContent = ok ? (label || "conectado") : "reconectando…";
+  $("connect").classList.toggle("hidden", ok || !!state);
 }
 
-function connect() {
-  ws = new WebSocket("ws://" + location.host + "/ws");
-  ws.onopen = () => { retry = 0; setConn(true); send({ hello: 1 }); };
-  ws.onclose = () => { setConn(false); setTimeout(connect, Math.min(3000, 500 + retry++ * 500)); };
-  ws.onmessage = (e) => {
-    const m = JSON.parse(e.data);
-    if (m.m) return onMeters(m.m);
-    if (m.p) { state = m; buildRig(); buildSlots(); applyPower(); }
-  };
+// Uma mensagem = uma linha de JSON. Cada transporte entrega o texto já remontado.
+function onText(text) {
+  let m; try { m = JSON.parse(text); } catch { return; } // pedaço corrompido: ignora (a próxima linha ressincroniza)
+  if (m.m) return onMeters(m.m);
+  if (Array.isArray(m.p)) {
+    state = { p: Object.fromEntries(PARAMS.map(([id], i) => [id, m.p[i]])), order: m.order, on: !!m.on, slot: m.slot, slots: m.slots };
+    buildRig(); buildSlots(); applyPower();
+  }
 }
+
+// ---- WiFi / WebSocket (página servida pelo próprio pedal, ESP32-S3) ----
+const FROM_DEVICE = location.protocol === "http:" && /^(\d+\.){3}\d+$/.test(location.hostname);
+function connectWifi(retry = 0) {
+  const ws = new WebSocket("ws://" + location.host + "/ws");
+  ws.onopen = () => { link = { send: (t) => ws.readyState === 1 && ws.send(t) }; setConn(true, "WiFi"); ws.send(JSON.stringify({ hello: 1 })); };
+  ws.onclose = () => { link = null; setConn(false); setTimeout(() => connectWifi(Math.min(retry + 1, 6)), 500 + retry * 500); };
+  ws.onmessage = (e) => onText(e.data);
+}
+
+// ---- Bluetooth LE (Web Bluetooth: Chrome/Edge no Android; exige HTTPS) ----
+const BLE_SVC = "a7c9e0f1-0b3d-4e5a-9c1f-4d6b2e8a1001", BLE_RX = "a7c9e0f1-0b3d-4e5a-9c1f-4d6b2e8a1002", BLE_TX = "a7c9e0f1-0b3d-4e5a-9c1f-4d6b2e8a1003";
+let bleDevice = null;
+
+async function openBle(device) {
+  const server = await device.gatt.connect();
+  const svc = await server.getPrimaryService(BLE_SVC);
+  const rx = await svc.getCharacteristic(BLE_RX), tx = await svc.getCharacteristic(BLE_TX);
+  let buffer = "", chain = Promise.resolve();
+  const dec = new TextDecoder(), enc = new TextEncoder();
+  tx.addEventListener("characteristicvaluechanged", (e) => {
+    buffer += dec.decode(e.target.value);
+    let i; while ((i = buffer.indexOf("\n")) >= 0) { const line = buffer.slice(0, i); buffer = buffer.slice(i + 1); onText(line); }
+    if (buffer.length > 1024) buffer = "";
+  });
+  await tx.startNotifications();
+  // Escritas de 20 bytes (cabem no MTU mínimo) e em fila: o Web Bluetooth não aceita duas ao mesmo tempo.
+  link = { send: (t) => {
+    const bytes = enc.encode(t + "\n");
+    chain = chain.then(async () => { for (let o = 0; o < bytes.length; o += 20) await rx.writeValueWithoutResponse(bytes.slice(o, o + 20)); }).catch(() => {});
+  } };
+  setConn(true, "Bluetooth");
+  send({ hello: 1 });
+}
+
+async function connectBle() {
+  try {
+    if (!bleDevice) {
+      bleDevice = await navigator.bluetooth.requestDevice({ filters: [{ namePrefix: "HushRig" }], optionalServices: [BLE_SVC] });
+      bleDevice.addEventListener("gattserverdisconnected", () => { link = null; setConn(false); reconnectBle(); });
+    }
+    $("connectMsg").textContent = "Conectando…";
+    await openBle(bleDevice);
+  } catch (err) {
+    $("connectMsg").textContent = err && err.name === "NotFoundError" ? "Nenhum pedal escolhido." : "Não consegui conectar: " + (err && err.message || err);
+  }
+}
+
+async function reconnectBle(attempt = 0) {
+  if (link || !bleDevice) return;
+  try { await openBle(bleDevice); }
+  catch { setTimeout(() => reconnectBle(attempt + 1), Math.min(4000, 800 + attempt * 600)); }
+}
+
+$("btnBle").onclick = connectBle;
+if (FROM_DEVICE) { $("connectMsg").textContent = "Conectando pelo WiFi do pedal…"; $("btnBle").style.display = "none"; connectWifi(); }
+else if (!navigator.bluetooth) {
+  $("btnBle").style.display = "none";
+  $("connectMsg").textContent = "Este navegador não tem Web Bluetooth.";
+  $("connectHint").textContent = "No Android use o Chrome. No iPhone, Web Bluetooth não funciona no Safari: use um navegador como o Bluefy.";
+} else $("connectHint").textContent = "Abra esta página com o pedal ligado e perto do celular.";
 
 $("power").onclick = () => { if (!state) return; state.on = !state.on; applyPower(); send({ on: state.on }); };
 $("save").onclick = () => { if (!state) return; send({ save: state.slot }); toast("Salvo no slot " + String.fromCharCode(65 + state.slot)); };
 $("reset").onclick = () => { if (confirm("Voltar todos os ajustes ao padrão?")) send({ reset: 1 }); };
-connect();
 </script>
 </body>
 </html>

@@ -36,6 +36,9 @@ void initI2s()
     i2s_std_config_t stdCfg = {};
     stdCfg.clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG (cfg::kSampleRate);
     stdCfg.clk_cfg.mclk_multiple = I2S_MCLK_MULTIPLE_256; // PCM1808 aceita 256/384/512 fs
+#if CONFIG_IDF_TARGET_ESP32
+    stdCfg.clk_cfg.clk_src = I2S_CLK_SRC_APLL; // 12,288 MHz exatos (menos jitter que o PLL padrão)
+#endif
     stdCfg.slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG (I2S_DATA_BIT_WIDTH_32BIT, I2S_SLOT_MODE_STEREO);
     stdCfg.gpio_cfg.mclk = cfg::kI2sMclk;
     stdCfg.gpio_cfg.bclk = cfg::kI2sBclk;

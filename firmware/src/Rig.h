@@ -22,6 +22,8 @@
 
 namespace hushrig
 {
+static_assert (Delay::kMaxTimeMs >= 700.0f, "a tabela de parametros promete delay de ate 700 ms");
+
 // Mesmos ids do plugin (src/PluginProcessor.cpp), menos o bloco do amp NAM.
 enum Param : int
 {
@@ -62,7 +64,7 @@ inline const std::array<ParamInfo, kNumParams>& paramTable()
         { "chDepth",         0.0f,   1.0f,   0.5f },
         { "chMix",           0.0f,   1.0f,   0.5f },
         { "dlOn",            0.0f,   1.0f,   0.0f },
-        { "dlTime",          1.0f, 1000.0f, 350.0f },
+        { "dlTime",          1.0f,  700.0f, 350.0f },
         { "dlFeedback",      0.0f,   0.95f,  0.35f },
         { "dlMix",           0.0f,   1.0f,   0.3f },
         { "dlTone",        500.0f, 12000.0f, 5000.0f },

@@ -18,7 +18,11 @@ public:
         float toneHz   = 5000.0f;
     };
 
-    static constexpr float kMaxTimeMs = 2000.0f;
+    // O firmware reduz isso (-DHUSHRIG_DELAY_MAX_MS) para caber na RAM de um ESP32 sem PSRAM.
+#ifndef HUSHRIG_DELAY_MAX_MS
+#define HUSHRIG_DELAY_MAX_MS 2000.0f
+#endif
+    static constexpr float kMaxTimeMs = HUSHRIG_DELAY_MAX_MS;
 
     void prepare (double newSampleRate, int numChannels)
     {

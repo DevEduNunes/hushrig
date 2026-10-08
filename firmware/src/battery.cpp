@@ -34,13 +34,22 @@ void start()
     chan.bitwidth = ADC_BITWIDTH_DEFAULT;
     adc_oneshot_config_channel (adc, cfg::kBatteryChannel, &chan);
 
+#if ADC_CALI_SCHEME_CURVE_FITTING_SUPPORTED
     adc_cali_curve_fitting_config_t calCfg = {};
     calCfg.unit_id = ADC_UNIT_1;
     calCfg.chan = cfg::kBatteryChannel;
     calCfg.atten = ADC_ATTEN_DB_12;
     calCfg.bitwidth = ADC_BITWIDTH_DEFAULT;
     if (adc_cali_create_scheme_curve_fitting (&calCfg, &cali) != ESP_OK)
-        cali = nullptr; // sem calibração de fábrica: cai na estimativa linear abaixo
+        cali = nullptr; // sem calibração de fábrica: cai na estimativa linear
+#elif ADC_CALI_SCHEME_LINE_FITTING_SUPPORTED
+    adc_cali_line_fitting_config_t calCfg = {};
+    calCfg.unit_id = ADC_UNIT_1;
+    calCfg.atten = ADC_ATTEN_DB_12;
+    calCfg.bitwidth = ADC_BITWIDTH_DEFAULT;
+    if (adc_cali_create_scheme_line_fitting (&calCfg, &cali) != ESP_OK)
+        cali = nullptr;
+#endif
 }
 
 float volts()
@@ -70,6 +79,8 @@ int percent()
     static constexpr Point curve[] = { { 3.30f, 0 }, { 3.60f, 10 }, { 3.70f, 25 }, { 3.80f, 45 },
                                        { 3.90f, 65 }, { 4.00f, 80 }, { 4.10f, 92 }, { 4.20f, 100 } };
     const float v = volts();
+    if (v < 2.5f)
+        return -1; // sem bateria (alimentado por USB/power bank): o pino fica solto
     if (v <= curve[0].v)
         return 0;
     for (size_t i = 1; i < std::size (curve); ++i)

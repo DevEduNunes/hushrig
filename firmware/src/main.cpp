@@ -1,3 +1,4 @@
+#include "app.h"
 #include "audio.h"
 #include "battery.h"
 #include "config.h"
@@ -5,12 +6,41 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "net.h"
+#include "protocol.h"
 #include "storage.h"
+
+#if HUSHRIG_WIFI
+#include "net.h"
+#endif
+#if HUSHRIG_BLE
+#include "ble.h"
+#endif
 
 namespace
 {
 hushrig::RigState gState;
+
+void sendToAll (const std::string& json, bool droppable)
+{
+#if HUSHRIG_WIFI
+    net::broadcastText (json);
+#endif
+#if HUSHRIG_BLE
+    ble::send (json, droppable);
+#endif
+    (void) json;
+    (void) droppable;
+}
+
+// Medidores 10×/s para quem estiver conectado.
+void meterTask (void*)
+{
+    for (;;)
+    {
+        vTaskDelay (pdMS_TO_TICKS (100));
+        sendToAll (protocol::metersJson(), true);
+    }
+}
 
 // Footswitch: toque curto liga/desliga o efeito. Debounce de 30 ms.
 void controlsTask (void*)
@@ -40,7 +70,7 @@ void controlsTask (void*)
             if (down)
             {
                 audio::setEngaged (! audio::isEngaged());
-                net::notifyStateChanged();
+                app::broadcastState();
             }
         }
         gpio_set_level (cfg::kLed, audio::isEngaged() ? 1 : 0);
@@ -48,13 +78,25 @@ void controlsTask (void*)
 }
 } // namespace
 
+namespace app
+{
+void broadcastState() { sendToAll (protocol::stateJson(), false); }
+} // namespace app
+
 extern "C" void app_main()
 {
     storage::init();
     storage::load (storage::lastSlot(), gState); // sem slot salvo, ficam os padrões
+    protocol::init (gState);
 
     battery::start();
     audio::start (gState);
-    net::start (gState);
+#if HUSHRIG_WIFI
+    net::start();
+#endif
+#if HUSHRIG_BLE
+    ble::start();
+#endif
+    xTaskCreatePinnedToCore (meterTask, "meters", 4096, nullptr, 3, nullptr, 0);
     xTaskCreatePinnedToCore (controlsTask, "controls", 3072, nullptr, 2, nullptr, 0);
 }
