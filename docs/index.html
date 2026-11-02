@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HushRig: o silêncio do seu rig</title>
+<meta name="description" content="Rig de guitarra open source para Windows, standalone e VST3. Noise gate com zero de latência, pedais, amp sim NAM e gravação em WAV.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#050308; --ink:#f1ecfa; --ink-2:#a79cc0; --ink-3:#6c6285;
+  --accent:#b476ff; --accent-2:#e2c9ff; --line:rgba(255,255,255,.1);
+  --font:"Manrope",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0}
+html{scroll-behavior:smooth;background:var(--bg)}
+body{background:var(--bg);color:var(--ink);font:300 16px/1.6 var(--font);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+::selection{background:var(--accent);color:#000}
+:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+
+#field{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block}
+.veil{position:fixed;inset:0;z-index:1;pointer-events:none;background:
+  radial-gradient(ellipse at 50% 110%,rgba(120,50,220,.18),transparent 60%),
+  linear-gradient(180deg,rgba(5,3,8,.55),transparent 25%,transparent 70%,rgba(5,3,8,.6))}
+
+.hud{position:fixed;z-index:5;font:400 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+.hud .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:8px;box-shadow:0 0 10px var(--accent);animation:pulse 2s infinite}
+@keyframes pulse{50%{opacity:.3}}
+.hud.tl{top:26px;left:32px;font:600 16px var(--font);letter-spacing:.02em;text-transform:none;color:var(--ink);display:flex;align-items:center}
+.hud.tc{top:30px;left:50%;transform:translateX(-50%)}
+.hud.tr{top:26px;right:32px;display:flex;gap:22px;align-items:center}
+.hud.tr a:hover{color:var(--ink)}
+.hud.tr .pill{border:1px solid var(--line);padding:8px 14px;border-radius:99px;color:var(--ink);background:rgba(255,255,255,.04);backdrop-filter:blur(8px)}
+.hud.tr .pill:hover{background:var(--accent);border-color:var(--accent);color:#0a0510}
+
+.index{position:fixed;right:32px;top:50%;transform:translateY(-50%);z-index:5;display:grid;gap:10px;text-align:right;font:400 11px var(--mono);letter-spacing:.06em;color:var(--ink-3)}
+.index a{display:flex;justify-content:flex-end;align-items:center;gap:10px;transition:.3s}
+.index a span{opacity:0;transform:translateX(6px);transition:.3s;text-transform:uppercase}
+.index a b{font-weight:400}
+.index a::after{content:"";width:6px;height:6px;border-radius:50%;border:1px solid var(--ink-3);transition:.3s}
+.index a:hover,.index a.on{color:var(--ink)}
+.index a:hover span,.index a.on span{opacity:1;transform:none}
+.index a.on::after{background:var(--accent);border-color:var(--accent);box-shadow:0 0 12px var(--accent)}
+
+main{position:relative;z-index:2}
+section{min-height:100vh;padding:120px 8vw 90px;display:flex;flex-direction:column;justify-content:flex-end;position:relative}
+.rev{opacity:0;transform:translateY(40px);filter:blur(8px);transition:opacity 1.1s ease,transform 1.1s cubic-bezier(.2,.7,.2,1),filter 1.1s ease}
+.in .rev{opacity:1;transform:none;filter:none}
+.in .rev:nth-child(2){transition-delay:.12s}.in .rev:nth-child(3){transition-delay:.24s}.in .rev:nth-child(4){transition-delay:.36s}
+
+.big{font-weight:200;font-size:clamp(52px,10.5vw,170px);line-height:.94;letter-spacing:-.045em}
+.big em{font-style:normal;font-weight:200;background:linear-gradient(180deg,#e9d6ff,#a263f5 70%,#7a35d8);-webkit-background-clip:text;background-clip:text;color:transparent}
+.mid{font-weight:200;font-size:clamp(38px,6.4vw,100px);line-height:1;letter-spacing:-.04em;max-width:15ch}
+.mid em{font-style:normal;color:var(--accent-2)}
+.tag{font:500 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:26px;display:block}
+.body{max-width:380px;color:var(--ink-2);font-size:15px;line-height:1.7}
+.body b{color:var(--ink);font-weight:400}
+
+.hero-row{display:flex;justify-content:space-between;align-items:flex-end;gap:40px;flex-wrap:wrap;margin-top:40px}
+.cta{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 26px;border-radius:99px;font:600 14px var(--font);transition:.3s;border:1px solid var(--line);background:rgba(255,255,255,.03);backdrop-filter:blur(8px)}
+.btn.fill{background:var(--ink);color:#0a0510;border-color:var(--ink)}
+.btn.fill:hover{background:var(--accent);border-color:var(--accent);box-shadow:0 0 40px rgba(180,118,255,.5)}
+.btn:not(.fill):hover{border-color:var(--accent);color:var(--accent-2)}
+.small{font:400 11px var(--mono);color:var(--ink-3);letter-spacing:.04em;max-width:340px;margin-top:16px}
+
+.shotwrap{margin-top:50px;border:1px solid var(--line);border-radius:18px;padding:8px;background:rgba(255,255,255,.03);backdrop-filter:blur(10px);max-width:960px}
+.shotwrap img{display:block;width:100%;height:auto;border-radius:12px}
+.shotwrap .ph{display:none;padding:80px 20px;text-align:center;font:12px var(--mono);color:var(--ink-3)}
+
+.meters{display:flex;gap:56px;flex-wrap:wrap;margin-top:56px}
+.meters div{border-left:1px solid var(--line);padding-left:18px}
+.meters b{display:block;font-weight:200;font-size:clamp(34px,4.4vw,60px);letter-spacing:-.04em;line-height:1}
+.meters span{font:400 11px var(--mono);color:var(--ink-3);text-transform:uppercase;letter-spacing:.08em}
+
+.split{display:grid;grid-template-columns:1.2fr 1fr;gap:6vw;align-items:end}
+.rows{border-top:1px solid var(--line);margin-top:48px}
+.row{display:grid;grid-template-columns:70px 1fr 1.4fr;gap:24px;align-items:baseline;padding:22px 0;border-bottom:1px solid var(--line);transition:.35s}
+.row:hover{padding-left:16px;background:linear-gradient(90deg,rgba(180,118,255,.1),transparent)}
+.row i{font:400 11px var(--mono);color:var(--ink-3);font-style:normal}
+.row h3{font-weight:300;font-size:clamp(22px,2.6vw,36px);letter-spacing:-.03em}
+.row p{color:var(--ink-2);font-size:14.5px}
+.row code{font:12px var(--mono);color:var(--accent-2)}
+
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:56px;border-top:1px solid var(--line)}
+.step{padding:26px 24px 0 0}
+.step i{font:400 11px var(--mono);color:var(--accent);font-style:normal;letter-spacing:.1em}
+.step h3{font-weight:300;font-size:26px;letter-spacing:-.03em;margin:14px 0 10px}
+.step p{color:var(--ink-2);font-size:14px}
+
+pre{margin-top:40px;padding:22px 24px;border:1px solid var(--line);border-radius:16px;background:rgba(10,6,18,.6);backdrop-filter:blur(10px);font:12.5px/1.8 var(--mono);color:#d9c9f5;overflow-x:auto;max-width:640px}
+pre .c{color:var(--ink-3)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px;max-width:520px}
+.chips span{font:11px var(--mono);color:var(--ink-2);padding:6px 12px;border:1px solid var(--line);border-radius:99px}
+.road{list-style:none;padding:0;margin-top:26px;display:grid;gap:12px;max-width:520px}
+.road li{display:grid;grid-template-columns:22px 1fr;color:var(--ink-2);font-size:14.5px}
+.road .ok{color:var(--accent)}.road .pend{color:var(--ink-3)}
+
+.foot{margin-top:90px;padding-top:26px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font:400 11px var(--mono);color:var(--ink-3);letter-spacing:.04em}
+.foot a:hover{color:var(--ink)}
+
+@media(max-width:900px){
+  .index{display:none}
+  .hud.tc{display:none}
+  .hud.tr a:not(.pill){display:none}
+  .hud.tl{left:20px}.hud.tr{right:20px}
+  section{padding:110px 22px 70px}
+  .split{grid-template-columns:1fr;gap:30px}
+  .row{grid-template-columns:36px 1fr;gap:6px 14px}.row p{grid-column:2}
+  .steps{grid-template-columns:1fr 1fr}
+  .meters{gap:28px}
+}
+@media(max-width:520px){.steps{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.rev{transition:none;opacity:1;transform:none;filter:none}.hud .dot{animation:none}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<canvas id="field" aria-hidden="true"></canvas>
+<div class="veil"></div>
+
+<a class="hud tl" href="#s0"><span class="dot"></span>HushRig</a>
+<div class="hud tc" id="hint">Role para fechar o gate</div>
+<div class="hud tr">
+  <a href="https://github.com/DevEduNunes/hushrig">GitHub</a>
+  <a class="pill" href="https://github.com/DevEduNunes/hushrig/releases">Baixar</a>
+</div>
+
+<nav class="index" aria-label="Seções">
+  <a href="#s0" class="on"><span>Início</span><b>00</b></a>
+  <a href="#s1"><span>Problema</span><b>01</b></a>
+  <a href="#s2"><span>Recursos</span><b>02</b></a>
+  <a href="#s3"><span>Como usar</span><b>03</b></a>
+  <a href="#s4"><span>Código</span><b>04</b></a>
+  <a href="#s5"><span>Baixar</span><b>05</b></a>
+</nav>
+
+<main>
+
+<section id="s0" class="in">
+  <span class="tag rev">Rig de guitarra open source · Windows · VST3</span>
+  <h1 class="big rev">O silêncio<br><em>do seu rig.</em></h1>
+  <div class="hero-row rev">
+    <div>
+      <p class="body">Toque direto no PC sem chiado e sem atraso. <b>Noise gate com zero de latência</b>, pedais, amp sim com Neural Amp Modeler e gravação em WAV, numa janela só.</p>
+      <div class="cta" style="margin-top:28px">
+        <a class="btn fill" href="https://github.com/DevEduNunes/hushrig/releases">Baixar para Windows</a>
+        <a class="btn" href="https://github.com/DevEduNunes/hushrig">Ver no GitHub</a>
+      </div>
+      <p class="small">v0.2 · AGPL-3.0 · O instalador não é assinado, o SmartScreen pode avisar sobre editor desconhecido.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s1">
+  <span class="tag rev">01 · O problema</span>
+  <h2 class="mid rev">Chiado <em>e</em> atraso.</h2>
+  <div class="split rev" style="margin-top:36px">
+    <p class="body" style="max-width:520px">Guitarra direto no PC costuma dar duas dores de cabeça. <b>Chiado</b>, por causa de captadores single-coil, ganho alto e ruído de USB. E <b>latência</b>, porque os drivers padrão do Windows usam buffers grandes.<br><br>O HushRig usa um gate sem lookahead, que não soma atraso, e um caminho de áudio pensado para ASIO, com o FlexASIO já no instalador.</p>
+    <div class="meters" style="margin-top:0">
+      <div><b>0 ms</b><span>latência do gate</span></div>
+      <div><b>0 ms</b><span>latência do amp sim</span></div>
+      <div><b>24-bit</b><span>gravação WAV</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="s2">
+  <span class="tag rev">02 · Recursos</span>
+  <h2 class="mid rev">Tudo que um rig <em>precisa.</em></h2>
+  <div class="shotwrap rev">
+    <img src="images/app-main.png" alt="Janela principal do HushRig" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+    <div class="ph">docs/images/app-main.png</div>
+  </div>
+  <div class="rows rev">
+    <div class="row"><i>01</i><h3>Noise gate</h3><p>Threshold, hold e release, com indicador de gate aberto ou fechado no medidor.</p></div>
+    <div class="row"><i>02</i><h3>Amp sim NAM</h3><p>Modelos <code>.nam</code> com gain, graves, médios, agudos, volume normalizado e medidor de CPU.</p></div>
+    <div class="row"><i>03</i><h3>Pedais</h3><p>Overdrive, EQ, chorus, delay e reverb. Arraste os blocos para reordenar a cadeia.</p></div>
+    <div class="row"><i>04</i><h3>Medidores</h3><p>Latência informada pelo driver (entrada, saída, buffer, CPU) e níveis de entrada e saída.</p></div>
+    <div class="row"><i>05</i><h3>Presets</h3><p>De fábrica e de usuário. Guardam pedais, ordem e modelo de amp.</p></div>
+    <div class="row"><i>06</i><h3>Gravação</h3><p>WAV 24-bit do áudio já processado, salvo em Documentos\HushRig.</p></div>
+    <div class="row"><i>07</i><h3>Interface</h3><p>Tema preto e roxo com knobs rotativos. Os cards se reorganizam em 1, 2 ou 3 colunas.</p></div>
+    <div class="row"><i>08</i><h3>Atualização</h3><p>Checa o GitHub ao abrir, confere o SHA-256 e instala a nova versão.</p></div>
+  </div>
+</section>
+
+<section id="s3">
+  <span class="tag rev">03 · Como usar</span>
+  <h2 class="mid rev">Do instalador ao <em>primeiro acorde.</em></h2>
+  <div class="steps rev">
+    <div class="step"><i>PASSO 01</i><h3>Instale</h3><p>Rode o <code>HushRig-Setup-x.y.z.exe</code> e escolha app, plugin VST3 e FlexASIO.</p></div>
+    <div class="step"><i>PASSO 02</i><h3>Configure</h3><p>Em Options, escolha ASIO → FlexASIO, defina entrada e saída e desmarque Mute audio input.</p></div>
+    <div class="step"><i>PASSO 03</i><h3>Latência</h3><p>Comece com buffer de 256 amostras e reduza até o áudio estalar.</p></div>
+    <div class="step"><i>PASSO 04</i><h3>Gate</h3><p>Suba o Gate Threshold até o chiado sumir. Se cortar as notas, aumente o Release.</p></div>
+  </div>
+  <p class="small rev" style="margin-top:36px">Use fones de ouvido para evitar microfonia.</p>
+</section>
+
+<section id="s4">
+  <span class="tag rev">04 · Código aberto</span>
+  <h2 class="mid rev">Compile <em>você mesmo.</em></h2>
+  <div class="split rev" style="margin-top:20px;align-items:start">
+    <div>
+<pre><span class="c"># compilar</span>
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
+
+<span class="c"># testar</span>
+ctest --test-dir build -C Release --output-on-failure
+
+<span class="c"># custo de CPU de um modelo NAM</span>
+build/Release/hushrig_ampbench.exe meu-modelo.nam 48000</pre>
+      <div class="chips"><span>C++</span><span>JUCE</span><span>VST3</span><span>CMake</span><span>Catch2</span><span>GitHub Actions</span><span>NeuralAmpModelerCore</span><span>Inno Setup</span><span>FlexASIO</span><span>ESP32-S3</span></div>
+    </div>
+    <div>
+      <span class="tag">Roadmap</span>
+      <ul class="road">
+        <li><span class="ok">✓</span>Gate, instalador com FlexASIO e atualização no app</li>
+        <li><span class="ok">✓</span>Medidores, pedais, cadeia reordenável e presets</li>
+        <li><span class="ok">✓</span>Gravação WAV e amp sim NAM</li>
+        <li><span class="pend">◦</span>Interface própria com pedais visuais</li>
+        <li><span class="pend">◦</span>Pedal de hardware com ESP32-S3 (cerca de US$ 14, Bluetooth). Esquema, PCB e firmware prontos; falta testar em placa real.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="s5">
+  <span class="tag rev">05 · Baixar</span>
+  <h2 class="big rev">Menos chiado.<br><em>Mais guitarra.</em></h2>
+  <div class="hero-row rev">
+    <div class="cta">
+      <a class="btn fill" href="https://github.com/DevEduNunes/hushrig/releases">Baixar HushRig</a>
+      <a class="btn" href="https://github.com/DevEduNunes/hushrig/issues">Abrir uma issue</a>
+    </div>
+    <p class="body">Grátis e open source, sob AGPL-3.0. Issues e pull requests são bem-vindos.</p>
+  </div>
+  <div class="foot">
+    <span>© HushRig</span>
+    <span><a href="https://github.com/DevEduNunes/hushrig">GitHub</a> · <a href="https://www.neuralampmodeler.com">Neural Amp Modeler</a> · <a href="https://github.com/dechamps/FlexASIO">FlexASIO</a> · <a href="https://juce.com">JUCE</a></span>
+  </div>
+</section>
+
+</main>
+
+<script>
+(() => {
+  const cv = document.getElementById('field'), ctx = cv.getContext('2d');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W, H, dpr, C, R, mx = -1, my = -1, prog = 0, hiss = 1, hissT = 1;
+
+  function size() {
+    dpr = Math.min(devicePixelRatio || 1, 2);
+    W = cv.width = innerWidth * dpr; H = cv.height = innerHeight * dpr;
+    cv.style.width = innerWidth + 'px'; cv.style.height = innerHeight + 'px';
+    C = innerWidth < 700 ? 90 : 190; R = innerWidth < 700 ? 40 : 70;
+  }
+  size(); addEventListener('resize', size);
+  addEventListener('pointermove', e => { mx = e.clientX * dpr; my = e.clientY * dpr; });
+
+  function onScroll() {
+    const max = document.documentElement.scrollHeight - innerHeight;
+    prog = max > 0 ? scrollY / max : 0;
+    hissT = Math.max(0.04, 1 - scrollY / (innerHeight * 0.9));
+  }
+  addEventListener('scroll', onScroll, { passive: true }); onScroll();
+
+  function frame(ms) {
+    const t = ms * 0.00035;
+    hiss += (hissT - hiss) * 0.06;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = '#050308'; ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'lighter';
+
+    // o campo desce e muda de fase conforme o scroll
+    const horizon = H * (0.42 + prog * 0.18);
+    const amp = H * (0.07 + 0.05 * (1 - hiss));
+    for (let r = 0; r < R; r++) {
+      const d = r / (R - 1);                    // 0 longe, 1 perto
+      const s = 0.18 + Math.pow(d, 1.6) * 1.5;  // escala em perspectiva
+      const base = horizon + Math.pow(d, 1.5) * H * 0.62;
+      const size = (0.5 + d * 1.9) * dpr;
+      const alpha = 0.12 + d * 0.8;
+      for (let c = 0; c < C; c++) {
+        const u = c / (C - 1) - 0.5;
+        const x = W * 0.5 + u * W * 1.35 * s;
+        const f1 = Math.sin(u * 7 + t * 2.2 + d * 4 + prog * 5);
+        const f2 = Math.sin(u * 15 - t * 3 + d * 7);
+        let h = (f1 * 0.62 + f2 * 0.38) * amp * s;
+        // chiado: jitter aleatório que some quando o gate fecha
+        const n = (Math.random() - 0.5) * hiss;
+        h += n * amp * 1.5 * s;
+        let y = base - h;
+        let a = alpha * (0.55 + 0.45 * Math.abs(f1));
+        a *= 1 - hiss * 0.25 * Math.random();
+        // o cursor levanta o campo
+        if (mx >= 0) {
+          const dx = x - mx, dy = y - my, q = dx * dx + dy * dy, rad = 160 * dpr;
+          if (q < rad * rad) { const k = 1 - Math.sqrt(q) / rad; y -= k * 34 * dpr * s; a += k * 0.5; }
+        }
+        // cor: lavanda no topo da onda, roxo profundo na base
+        const hl = Math.max(0, Math.min(1, 0.5 + h / (amp * 2.2 * s + 1)));
+        const rr = 120 + hl * 110, gg = 60 + hl * 120, bb = 230 + hl * 25;
+        ctx.fillStyle = `rgba(${rr|0},${gg|0},${bb|0},${Math.min(a, 1).toFixed(3)})`;
+        ctx.fillRect(x, y, size, size);
+      }
+    }
+    // poeira solta (chiado visível)
+    if (hiss > 0.08) {
+      ctx.fillStyle = `rgba(210,180,255,${(0.5 * hiss).toFixed(2)})`;
+      for (let i = 0; i < 90 * hiss; i++) ctx.fillRect(Math.random() * W, Math.random() * H, dpr, dpr);
+    }
+    if (!reduce) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  if (reduce) { hiss = hissT = 0.04; frame(2000); }
+
+  // revelar seções e marcar o índice
+  const links = [...document.querySelectorAll('.index a')];
+  const secs = [...document.querySelectorAll('main section')];
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('in');
+      links.forEach(l => l.classList.toggle('on', l.getAttribute('href') === '#' + e.target.id));
+    }
+  }), { threshold: 0.35 });
+  secs.forEach(s => io.observe(s));
+
+  const hint = document.getElementById('hint');
+  addEventListener('scroll', () => {
+    hint.textContent = scrollY < 80 ? 'Role para fechar o gate' : hiss < 0.15 ? 'Gate fechado' : 'Gate abrindo…';
+  }, { passive: true });
+})();
+</script>
+</body>
+</html>
