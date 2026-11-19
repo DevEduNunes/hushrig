@@ -140,7 +140,12 @@ src/            # processador e editor do plugin
 tests/          # testes (Catch2)
 tools/          # gerador de screenshots do README e hushrig_ampbench (mede o custo de um modelo .nam)
 installer/      # script do instalador (Inno Setup)
+docs/           # página do projeto (https://eduardonunes.dev/hushrig/)
 ```
+
+### Página do projeto
+
+A página em https://eduardonunes.dev/hushrig/ é a pasta `docs/` servida por um contêiner nginx (`Dockerfile` + `nginx.conf`) na VPS do autor, via Dokploy. Depois de alterar `docs/`, o deploy é manual: Dokploy → app `hushrig` → *General* → **Deploy**.
 
 ## 🤝 Contribuindo
 
